@@ -1,0 +1,29 @@
+version: "3"
+services:
+    frontend:
+        container_name: dnr_client
+        build:
+            context: ./client
+            dockerfile: Dockerfile
+            args:
+                - port=$CLIENT_PORT
+        image: dnr/dnr_client
+        ports:
+            - "$CLIENT_PORT:$CLIENT_PORT"
+        volumes:
+            - ./client:/usr/src/app
+    backend:
+        container_name: dnr_server
+        build:
+            context: ./server
+            dockerfile: Dockerfile
+            args:
+                - port=$SERVER_PORT
+        image: dnr/dnr_server
+        ports:
+            - "$SERVER_PORT:$SERVER_PORT"
+        environment:
+            - port=$SERVER_PORT
+            - app_env=dev
+        volumes:
+            - ./server:/usr/src/app
