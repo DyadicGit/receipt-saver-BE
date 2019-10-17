@@ -1,0 +1,27 @@
+org: dyadic
+app: first-app
+service: first-app-service
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: prod
+  region: eu-west-2
+  environment: 
+    NODE_ENV: ${self:custom.secrets.NODE_ENV}
+
+functions:
+  app:
+    handler: app.sls
+    events:
+      - http:
+          path: /helloWorld
+          method: get
+          cors: true
+
+
+custom:
+  secrets: ${file(secrets.json)}
+#  scriptHooks:
+#    before:package:createDeploymentArtifacts: npm run build:client
+#   - serverless-offline

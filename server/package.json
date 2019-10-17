@@ -1,15 +1,18 @@
 {
   "name": "server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "a full-stack app, where BE api is on AWS Lambdas",
+  "main": "app.js",
   "scripts": {
-    "dev": "node index.js",
-    "debug": "node --inspect index.js"
+    "start:local": "node app.local.js ",
+    "start:server": "npm run build:client && node app.server.js",
+    "start:sls": "serverless deploy",
+    "build:client": "npm run --prefix ../client build",
+    "debug:local": "node --inspect app.local.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Olgerd Seviakov",
   "dependencies": {
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "serverless-http": "^2.3.0"
   }
 }
