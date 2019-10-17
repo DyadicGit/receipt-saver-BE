@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { landingPageUrl } from '../config/endpoints';
+import { helloWorldApi } from '../config/endpoints';
 
 export default () => {
   const [text, setText] = useState('');
   useEffect(() => {
-    fetch(landingPageUrl)
+    fetch(helloWorldApi)
       .then(response => response.text())
       .then(setText);
   }, []);
