@@ -1,9 +1,7 @@
 */node_modules
 .vscode/*
 .idea/*
-/client/build
-/server/.serverless/*
-
+.serverless/*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

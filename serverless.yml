@@ -1,6 +1,6 @@
 org: dyadic
-app: first-app
-service: first-app-service
+app: receipt-saver-be
+service: receipt-saver-be-service
 
 provider:
   name: aws
