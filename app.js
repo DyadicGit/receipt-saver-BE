@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
 // For Handling unhandled promise rejection
@@ -13,7 +14,7 @@ process.on('uncaughtException', error => {
 
 
 // Controllers
-app.get('/helloWorld', (req, res) => {
+app.get('/helloWorld', cors(), (req, res) => {
   res.send('Hello World!');
 });
 
