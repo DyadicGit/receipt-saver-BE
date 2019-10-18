@@ -9,6 +9,7 @@ provider:
   region: eu-west-2
   environment: 
     NODE_ENV: ${self:custom.secrets.NODE_ENV}
+    CLIENT_URL: ${self:custom.secrets.CLIENT_URL}
 
 functions:
   app:
