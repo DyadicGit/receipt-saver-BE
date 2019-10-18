@@ -4,10 +4,8 @@
   "description": "a full-stack app, where BE api is on AWS Lambdas",
   "main": "app.js",
   "scripts": {
-    "start:local": "node app.local.js ",
-    "start:server": "npm run build:client && node app.server.js",
     "start:sls": "serverless deploy",
-    "build:client": "npm run --prefix ../client build",
+    "start:local": "node app.local.js ",
     "debug:local": "node --inspect app.local.js"
   },
   "author": "Olgerd Seviakov",
