@@ -1,0 +1,6 @@
+{
+  "CLIENT_PORT":"3000",
+  "SERVER_PORT": "5000",
+  "IS_OFFLINE": true,
+  "DYNAMODB_TABLE": "rs-service-prod-todo-table"
+}

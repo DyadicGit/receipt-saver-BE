@@ -1,6 +1,7 @@
-import express from 'express';
+import express, { NextFunction, Request, Response } from 'express';
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || '*';
+const receipt = require('./controllers/receipt');
 
 // For Handling unhandled promise rejection
 process.on('unhandledRejection', (reason: any) => {
@@ -11,6 +12,9 @@ process.on('uncaughtException', error => {
   console.log('[Uncaught Exception]::', error.message);
   throw error;
 });
+// request.body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // Cors
 app.use((req, res, next) => {
@@ -19,10 +23,10 @@ app.use((req, res, next) => {
   next();
 });
 
-
 // Controllers
-app.get('/helloWorld', (req, res) => {
+app.get('/helloWorld', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
+app.post('/todos', receipt.create);
 
 module.exports = app;

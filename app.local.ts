@@ -1,6 +1,5 @@
 const app = require('./app');
-import env from './config/env.json';
-const { CLIENT_PORT, SERVER_PORT } = env;
+import { CLIENT_PORT, SERVER_PORT } from './config/default_env.json';
 
 app.listen(SERVER_PORT, () => {
   console.log(

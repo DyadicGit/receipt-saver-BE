@@ -6,6 +6,7 @@
   "scripts": {
     "start:local": "tsc && node ./build/app.local.js ",
     "debug:local": "tsc && node --inspect ./build/app.local.js",
+    "db:local": "serverless offline start",
     "tsc": "tsc",
     "tsc:watch": "tsc -w",
     "deploy": "tsc && serverless deploy"
@@ -21,6 +22,8 @@
     "@types/express": "^4.17.1",
     "@types/node": "^12.11.1",
     "@types/uuid": "^3.4.5",
+    "serverless-dynamodb-local": "^0.2.38",
+    "serverless-offline": "^5.12.0",
     "tslint": "^5.20.0",
     "typescript": "^3.6.4"
   }
