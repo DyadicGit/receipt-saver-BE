@@ -5,11 +5,11 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "moduleResolution": "node",
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "sourceMap": true,
     "outDir": "build",
     "lib": ["es6", "es2020"],
-    "types": ["node", "express", "aws-sdk"]
+    "types": ["node", "express", "aws-sdk", "uuid"]
   },
   "exclude": [
     "node_modules"
