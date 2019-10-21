@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "sourceMap": true,
+    "outDir": "build",
+    "lib": ["es6", "es2020"],
+    "types": ["node", "express", "aws-sdk"]
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

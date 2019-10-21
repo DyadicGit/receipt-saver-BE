@@ -13,7 +13,7 @@ provider:
 
 functions:
   app:
-    handler: app.sls.server
+    handler: build.app.sls.server
     events:
       - http:
           path: /helloWorld
