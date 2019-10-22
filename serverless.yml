@@ -2,15 +2,29 @@ org: dyadic
 app: receipt-saver-be
 service: rs-service
 
+custom:
+  defaultEnv: ${file(./config/default_env.json)}
+  dynamodb:
+    stages:
+      - ${self:provider.stage}
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+    migration:
+      dir: offline
+
 provider:
   name: aws
   runtime: nodejs10.x
   stage: prod
   region: eu-west-2
   environment: 
-    NODE_ENV: ${self:custom.secrets.NODE_ENV}
-    CLIENT_URL: ${self:custom.secrets.CLIENT_URL}
-    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}-todo-table
+    NODE_ENV: ${self:custom.defaultEnv.NODE_ENV}
+    CLIENT_URL: ${self:custom.defaultEnv.CLIENT_URL}
+    TABLE_RECEIPT: ${self:service}-${self:custom.defaultEnv.TABLE_RECEIPT}-${self:provider.stage}
+    TABLE_ITEM: ${self:service}-${self:custom.defaultEnv.TABLE_ITEM}-${self:provider.stage}
+    TABLE_USERS: ${self:service}-${self:custom.defaultEnv.TABLE_USERS}-${self:provider.stage}
   iamRoleStatements:
       - Effect: Allow
         Action:
@@ -20,7 +34,8 @@ provider:
           - dynamodb:PutItem
           - dynamodb:UpdateItem
           - dynamodb:DeleteItem
-        Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+        Resource:
+          - { "Fn::GetAtt": ["ReceiptDynamoDBTable", "Arn" ] }
 
 functions:
   app:
@@ -29,19 +44,14 @@ functions:
       - http:
           path: /helloWorld
           method: get
-          cors: true
       - http:
-          path: /todos
-          method: post
-          cors: true
-      - http:
-          path: /todos
-          method: get
-          cors: true
+          path: /receipt
+          method: ANY
+
 
 resources:
   Resources:
-    TodosDynamoDbTable:
+    ReceiptDynamoDBTable:
       Type: 'AWS::DynamoDB::Table'
       DeletionPolicy: Retain
       Properties:
@@ -56,29 +66,8 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        TableName: ${self:provider.environment.TABLE_RECEIPT}
 
 plugins:
   - serverless-dynamodb-local
   - serverless-offline
-
-custom:
-  secrets: ${file(secrets.json)}
-  dynamodb:
-    stages:
-      - ${self:provider.stage}
-    start:
-      port: 8000
-      inMemory: true
-      migrate: true
-    migration:
-      dir: offline
-#  scriptHooks:
-#    before:package:createDeploymentArtifacts: npm run build:client
-#   - serverless-offline
-
-package:
-  exclude:
-    - node_modules/dynamodb-localhost/**
-    - node_modules/serverless-dynamodb-local/**
-    - node_modules/serverless-offline/**

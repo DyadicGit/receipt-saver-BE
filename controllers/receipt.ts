@@ -1,51 +1,39 @@
 import * as uuid from 'uuid';
-import { NextFunction, Request, Response } from 'express';
-import { DYNAMODB_TABLE } from '../config/default_env.json';
+import { Request, Response } from 'express';
 const dynamoDb = require('./dynamodb');
-const TODOS_TABLE =process .env.DYNAMODB_TABLE || DYNAMODB_TABLE;
-type ToDoBody = { text: string };
+const { TABLE_RECEIPT: TableName } = process.env;
 
-const create = (req: Request, res: Response, next: NextFunction) => {
-  const timestamp = new Date().getTime();
-  const data: ToDoBody = req.body;
-  if (typeof data.text !== 'string') {
-    res.send({
-      success: false,
-      message: 'Validation Failed'
-    });
-  }
+const create = (req: Request, res: Response) => {
+  const newReceipt: Receipt = ((data: RequestReceipt): Receipt => ({
+    id: uuid.v1(),
+    image: data.image || null,
+    shopName: data.shopName || null,
+    itemId: data.itemId || null,
+    itemName: data.itemName || null,
+    buyDate: data.buyDate || new Date().getTime(),
+    creationDate: new Date().getTime(),
+    totalPrice: data.totalPrice || 0,
+    warrantyPeriod: data.warrantyPeriod || 0,
+    userID: data.userID || null
+  }))(req.body);
 
-  const params = {
-    TableName: TODOS_TABLE,
-    Item: {
-      id: uuid.v1(),
-      text: data.text,
-      checked: false,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    }
-  };
-
-  dynamoDb.put(params, (error, result) => {
+  dynamoDb.put({ TableName, Item: newReceipt }, (error, result) => {
     if (error) {
-      console.log('Error creating Todo: ', error);
-      res.status(400).json({ error: 'Could not create Todo' });
+      console.error('Error creating receipt', error);
+      res.status(400).json({ error: 'Error creating', message: error.message });
     }
-    console.log('result.Item:', result.Item);
-    res.json({text: data.text});
+    res.json({ id: newReceipt.id });
   });
 };
-const get = (req, res) => {
-  const params = {
-    TableName: TODOS_TABLE,
-  };
-  dynamoDb.scan(params, (error, result) => {
+
+const getAll = (req, res) => {
+  dynamoDb.scan({ TableName }, (error, result) => {
     if (error) {
-      res.status(400).json({ error: 'Error retrieving Todos'});
+      res.status(400).json({ error: 'Error retrieving', message: error.message });
     }
-    const { Items: todos } = result;
-    res.json({ todos });
-  })
+    const receipts: ReceiptList = result.Items || [];
+    res.json(receipts);
+  });
 };
 
-module.exports = { create, get };
+module.exports = { create, getAll };

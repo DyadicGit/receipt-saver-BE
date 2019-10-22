@@ -1,6 +1,10 @@
 {
+  "NODE_ENV": "production",
+  "CLIENT_URL": "https://master.d3nwdy87hsdycx.amplifyapp.com/",
   "CLIENT_PORT":"3000",
   "SERVER_PORT": "5000",
-  "IS_OFFLINE": true,
-  "DYNAMODB_TABLE": "rs-service-prod-todo-table"
+  "IS_OFFLINE": false,
+  "TABLE_RECEIPT": "receipt-table",
+  "TABLE_ITEM": "item-table",
+  "TABLE_USERS": "users-table"
 }

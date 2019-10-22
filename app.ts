@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || '*';
 const receipt = require('./controllers/receipt');
@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 app.get('/helloWorld', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
-app.post('/todos', receipt.create);
-app.get('/todos', receipt.get);
+app.post('/receipt', receipt.create);
+app.get('/receipt', receipt.getAll);
 
 module.exports = app;

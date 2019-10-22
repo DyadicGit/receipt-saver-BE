@@ -1,0 +1,1 @@
+type ReceiptList = Receipt[];
