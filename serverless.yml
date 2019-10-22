@@ -4,11 +4,13 @@ service: rs-service
 
 custom:
   defaultEnv: ${file(./config/default_env.json)}
+  serverless-offline:
+    port: ${self:custom.defaultEnv.SERVERLESS_PORT}
   dynamodb:
     stages:
       - ${self:provider.stage}
     start:
-      port: 8000
+      port: ${self:custom.defaultEnv.DB_PORT}
       inMemory: true
       migrate: true
     migration:
