@@ -4,10 +4,8 @@
   "description": "a full-stack app, where BE api is on AWS Lambdas",
   "main": "app.ts",
   "scripts": {
-    "local:start": "tsc && node ./build/app.local.js ",
-    "local:debug": "tsc && node --inspect ./build/app.local.js",
-    "sls:start": "tsc && serverless offline start",
-    "sls:debug": "tsc && node --inspect %slsloc% offline start",
+    "start": "tsc && serverless offline start",
+    "debug": "tsc && node --inspect %slsloc% offline start",
     "build": "tsc",
     "tsc:watch": "tsc -w",
     "deploy": "tsc && serverless deploy"
