@@ -28,5 +28,6 @@ app.get('/helloWorld', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
 app.post('/todos', receipt.create);
+app.get('/todos', receipt.get);
 
 module.exports = app;

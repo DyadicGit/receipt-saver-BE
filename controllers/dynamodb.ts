@@ -1,16 +1,12 @@
-import { DynamoDB } from 'aws-sdk';
+import AWS from 'aws-sdk';
 import { IS_OFFLINE } from '../config/default_env.json';
 
-let options = {};
+const dynamoDb =
+  (process.env.IS_OFFLINE || IS_OFFLINE)
+    ? new AWS.DynamoDB.DocumentClient({
+        region: 'localhost',
+        endpoint: 'http://localhost:8000'
+      })
+    : new AWS.DynamoDB.DocumentClient();
 
-// connect to local DB if running offline
-if (process.env.IS_OFFLINE || IS_OFFLINE) {
-  options = {
-    region: 'localhost',
-    endpoint: `http://localhost:8000}`
-  };
-}
-
-const client = new DynamoDB.DocumentClient(options);
-
-module.exports = client;
+module.exports = dynamoDb;

@@ -34,6 +34,10 @@ functions:
           path: /todos
           method: post
           cors: true
+      - http:
+          path: /todos
+          method: get
+          cors: true
 
 resources:
   Resources:
@@ -61,6 +65,8 @@ plugins:
 custom:
   secrets: ${file(secrets.json)}
   dynamodb:
+    stages:
+      - ${self:provider.stage}
     start:
       port: 8000
       inMemory: true
@@ -70,3 +76,9 @@ custom:
 #  scriptHooks:
 #    before:package:createDeploymentArtifacts: npm run build:client
 #   - serverless-offline
+
+package:
+  exclude:
+    - node_modules/dynamodb-localhost/**
+    - node_modules/serverless-dynamodb-local/**
+    - node_modules/serverless-offline/**
