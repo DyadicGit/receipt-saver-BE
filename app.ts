@@ -29,5 +29,8 @@ app.get('/helloWorld', (req: Request, res: Response) => {
 });
 app.post('/receipt', receipt.create);
 app.get('/receipt', receipt.getAll);
+app.get('/receipt/:id', receipt.getById);
+app.put('/receipt', receipt.edit);
+app.delete('/receipt/:id', receipt.deleteById);
 
 module.exports = app;

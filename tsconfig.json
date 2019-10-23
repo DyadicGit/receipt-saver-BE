@@ -9,7 +9,7 @@
     "sourceMap": true,
     "outDir": "build",
     "lib": ["es6", "es2020"],
-    "types": ["node", "express", "aws-sdk", "uuid"]
+    "types": ["node", "express", "uuid"]
   },
   "exclude": [
     "node_modules"
