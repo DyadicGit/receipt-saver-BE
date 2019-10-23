@@ -22,7 +22,7 @@ const create = (req: Request, res: Response) => {
     userID: data.userID || null
   }))(req.body);
 
-  dynamoDb.put({ TableName, Item: newReceipt }, (error, result) => {
+  dynamoDb.put({ TableName, Item: newReceipt as any }, (error) => {
     if (error) {
       console.error('Error creating receipt', error);
       res.status(400).json({ error: 'Error creating', message: error.message });
@@ -58,7 +58,7 @@ const getById = ({ params: { id } }: Request, res: Response) => {
     }
   });
 };
-const edit = (req, res) => {
+const edit = (req: Request, res: Response) => {
   const receipt: Receipt = req.body;
 
   const params: UpdateItemInput = {
@@ -79,7 +79,7 @@ const edit = (req, res) => {
   });
 };
 
-const deleteById = ({ params: { id } }, res) => {
+const deleteById = ({ params: { id } }: Request, res: Response) => {
   dynamoDb.delete({ TableName, Key: { id } }, error => {
     if (error) {
       console.log(`Error deleting, id ${id}`, error);
