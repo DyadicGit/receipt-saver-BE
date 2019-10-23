@@ -31,7 +31,7 @@ const getAll = (req, res) => {
     if (error) {
       res.status(400).json({ error: 'Error retrieving', message: error.message });
     }
-    const receipts: ReceiptList = result.Items || [];
+    const receipts: Receipt[] = result.Items || [];
     res.json(receipts);
   });
 };
