@@ -1,6 +1,8 @@
 import * as uuid from 'uuid';
-import { Request, Response } from 'express';
+import { Request } from 'express';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import { ResponseData } from '../config/handlerCreator';
+import { Receipt, RequestReceipt, setDefaults } from '../config/DomainTypes';
 import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
@@ -8,85 +10,79 @@ import UpdateItemInput = DocumentClient.UpdateItemInput;
 const dynamoDb = require('./dynamodb');
 const { TABLE_RECEIPT: TableName } = process.env;
 
-const create = (req: Request, res: Response) => {
-  const newReceipt: Receipt = ((data: RequestReceipt): Receipt => ({
-    id: uuid.v1(),
-    image: data.image || null,
-    shopName: data.shopName || null,
-    itemId: data.itemId || null,
-    itemName: data.itemName || null,
-    buyDate: data.buyDate || new Date().getTime(),
-    creationDate: new Date().getTime(),
-    totalPrice: data.totalPrice || 0,
-    warrantyPeriod: data.warrantyPeriod || 0,
-    userID: data.userID || null
-  }))(req.body);
-
-  dynamoDb.put({ TableName, Item: newReceipt as any }, (error) => {
-    if (error) {
-      console.error('Error creating receipt', error);
-      res.status(400).json({ error: 'Error creating', message: error.message });
-    }
-    res.json({ id: newReceipt.id });
-  });
+const create = async (req: Request): ResponseData => {
+  const body: RequestReceipt = req.body;
+  const newReceipt = { ...setDefaults({ ...body, creationDate: null, id: uuid.v1() }) };
+  try {
+    await dynamoDb.put({ TableName, Item: newReceipt }).promise();
+    return { body: { id: newReceipt.id } };
+  } catch (error) {
+    console.error('Error creating', error);
+    return { code: 400, body: { error: 'Error creating', message: error.message } };
+  }
 };
 
-const getAll = (req: Request, res: Response) => {
-  dynamoDb.scan({ TableName }, (error, result) => {
-    if (error) {
-      res.status(400).json({ error: 'Error retrieving', message: error.message });
-    }
-    const receipts: Receipt[] = result.Items || [];
-    res.json(receipts);
-  });
+const getAll = async (): ResponseData => {
+  try {
+    const result = await dynamoDb.scan({ TableName }).promise();
+    return { body: result.Items as Receipt[] };
+  } catch (error) {
+    console.error('Error retrieving', error);
+    return { code: 400, body: { error: 'Error retrieving', message: error.message } };
+  }
 };
 
-const getById = ({ params: { id } }: Request, res: Response) => {
+const getById = async ({ params: { id } }: Request): ResponseData => {
   const params: GetItemInput = {
     TableName,
     Key: { id }
   };
-  dynamoDb.get(params, (err, result: GetItemOutput) => {
-    if (err) {
-      res.status(400).json({ error: 'Error retrieving', message: err.message });
-      return;
-    }
-    if (result && result.Item) {
-      res.json(result.Item as Receipt);
+  try {
+    const result: GetItemOutput = await dynamoDb.get(params).promise();
+    if (result.Item) {
+      return { body: result.Item as Receipt };
     } else {
-      res.status(404).json({ error: `Receipt by id:${id} not found` });
+      return { code: 404, body: { error: `Receipt by id:${id} not found` } };
     }
-  });
+  } catch (error) {
+    console.error('Error retrieving', error);
+    return { code: 400, body: { error: 'Error retrieving', message: error.message } };
+  }
 };
-const edit = (req: Request, res: Response) => {
-  const receipt: Receipt = req.body;
-
+const edit = async (req: Request): ResponseData => {
+  const receipt: Receipt = setDefaults(req.body);
   const params: UpdateItemInput = {
     TableName,
     Key: { id: receipt.id },
-    UpdateExpression: 'set #a = :itemName, #b = :shopName',
-    ExpressionAttributeNames: { '#a': 'itemName', '#b': 'shopName' },
-    ExpressionAttributeValues: { ':itemName': receipt.itemName, ':shopName': receipt.shopName }
+    UpdateExpression:
+      'set image = :im, shopName = :sN, itemName = :iN, buyDate = :bD, totalPrice = :tP, warrantyPeriod = :w, userID = :u',
+    ExpressionAttributeValues: {
+      ':im': receipt.image,
+      ':sN': receipt.shopName,
+      ':iN': receipt.itemName,
+      ':bD': receipt.buyDate,
+      ':tP': receipt.totalPrice,
+      ':w': receipt.warrantyPeriod,
+      ':u': receipt.userID
+    }
   };
-
-  dynamoDb.update(params, error => {
-    if (error) {
-      console.log(`Error updating, id: ${receipt.id}: `, error);
-      res.status(400).json({ error: 'Could not update' });
-    }
-
-    res.json(receipt);
-  });
+  try {
+    await dynamoDb.update(params).promise();
+    return { body: receipt };
+  } catch (error) {
+    console.error(`Error updating, id: ${receipt.id}: `, error);
+    return { code: 400, body: { error: 'Could not update' } };
+  }
 };
 
-const deleteById = ({ params: { id } }: Request, res: Response) => {
-  dynamoDb.delete({ TableName, Key: { id } }, error => {
-    if (error) {
-      console.log(`Error deleting, id ${id}`, error);
-      res.status(400).json({ error: 'Could not delete' });
-    }
-
-    res.json({ success: true });
-  });
+const deleteById = async ({ params: { id } }: Request): ResponseData => {
+  try {
+    await dynamoDb.delete({ TableName, Key: { id } }).promise();
+    return { body: { success: true } };
+  } catch (error) {
+    console.error(`Error deleting, id ${id}`, error);
+    return { code: 400, body: { error: 'Could not delete' } };
+  }
 };
+
 module.exports = { create, getAll, getById, edit, deleteById };

@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { handler } from './config/handlerCreator';
 const app = express();
 const CLIENT_URL = process.env.CLIENT_URL || '*';
 const receipt = require('./controllers/receipt');
@@ -27,10 +28,10 @@ app.use((req, res, next) => {
 app.get('/helloWorld', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
-app.post('/receipt', receipt.create);
-app.get('/receipt', receipt.getAll);
-app.get('/receipt/:id', receipt.getById);
-app.put('/receipt', receipt.edit);
-app.delete('/receipt/:id', receipt.deleteById);
+app.post('/receipt', handler(receipt.create));
+app.get('/receipt', handler(receipt.getAll));
+app.get('/receipt/:id', handler(receipt.getById));
+app.put('/receipt', handler(receipt.edit));
+app.delete('/receipt/:id', handler(receipt.deleteById));
 
 module.exports = app;
