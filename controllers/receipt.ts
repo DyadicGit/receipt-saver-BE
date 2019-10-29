@@ -22,10 +22,25 @@ const create = async (req: Request): ResponseData => {
   }
 };
 
+interface NormalizedReceipts {
+  byId: { [id: string]: Receipt };
+  order: string[];
+}
+const byDate = (a, b) => (a.buyDate | a.creationDate) - (b.buyDate | b.creationDate);
+
 const getAll = async (): ResponseData => {
   try {
     const result = await dynamoDb.scan({ TableName }).promise();
-    return { body: result.Items as Receipt[] };
+    const receipts: Receipt[] = result.Items;
+    const initial: NormalizedReceipts = { byId: {}, order: [] };
+    const normalizedReceipts = receipts
+      .sort(byDate)
+      .reduce((acc: NormalizedReceipts, receipt: Receipt) => {
+        acc.byId[receipt.id] = receipt;
+        acc.order.push(receipt.id);
+        return acc;
+      }, initial);
+    return { body: normalizedReceipts };
   } catch (error) {
     console.error('Error retrieving', error);
     return { code: 400, body: { error: 'Error retrieving', message: error.message } };
