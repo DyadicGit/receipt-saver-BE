@@ -49,6 +49,9 @@ functions:
       - http:
           path: /receipt
           method: ANY
+      - http:
+          path: /receipt/{any+}
+          method: ANY
 
 
 resources:
