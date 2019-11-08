@@ -15,7 +15,7 @@ const create = async (req: Request): ResponseData => {
   const newReceipt = { ...setDefaults({ ...body, creationDate: null, id: uuid.v1() }) };
   try {
     await dynamoDb.put({ TableName, Item: newReceipt }).promise();
-    return { body: { id: newReceipt.id } };
+    return { body: newReceipt };
   } catch (error) {
     console.error('Error creating', error);
     return { code: 400, body: { error: 'Error creating', message: error.message } };
