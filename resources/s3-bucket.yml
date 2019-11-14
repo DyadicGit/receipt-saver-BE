@@ -3,7 +3,6 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: ${self:custom.bucketReceiptsName}
-      # Set the CORS policy
       CorsConfiguration:
         CorsRules:
           -
@@ -18,8 +17,3 @@ Resources:
               - DELETE
               - HEAD
             MaxAge: 3000
-
-Outputs:
-  ReceiptBucketName:
-    Value:
-      Ref: ReceiptBucket
