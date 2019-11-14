@@ -52,6 +52,12 @@ functions:
           path: /helloWorld
           method: get
       - http:
+          path: /image
+          method: ANY
+      - http:
+          path: /image/{any+}
+          method: ANY
+      - http:
           path: /receipt
           method: ANY
       - http:

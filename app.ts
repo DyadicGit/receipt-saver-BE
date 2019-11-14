@@ -34,5 +34,7 @@ app.get('/receipt', handler(receipt.getAll));
 app.get('/receipt/:id', handler(receipt.getById));
 app.put('/receipt', handler(receipt.edit));
 app.delete('/receipt/:id', handler(receipt.deleteById));
+app.get('/image', handler(receipt.getAllImages));
+app.get('/image/:key', handler(receipt.getImage));
 
 module.exports = app;

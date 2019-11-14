@@ -7,8 +7,10 @@ import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 
-const dynamoDb = require('./dynamodb');
-const { TABLE_RECEIPT: TableName } = process.env;
+const dynamoDb = require('./AwsInstances');
+const s3 = require('./AwsInstances');
+
+const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
 
 const create = async (req: Request): ResponseData => {
   const body: RequestReceipt = req.body;
@@ -33,13 +35,11 @@ const getAll = async (): ResponseData => {
     const result = await dynamoDb.scan({ TableName }).promise();
     const receipts: Receipt[] = result.Items;
     const initial: NormalizedReceipts = { byId: {}, order: [] };
-    const normalizedReceipts = receipts
-      .sort(byDate)
-      .reduce((acc: NormalizedReceipts, receipt: Receipt) => {
-        acc.byId[receipt.id] = receipt;
-        acc.order.push(receipt.id);
-        return acc;
-      }, initial);
+    const normalizedReceipts = receipts.sort(byDate).reduce((acc: NormalizedReceipts, receipt: Receipt) => {
+      acc.byId[receipt.id] = receipt;
+      acc.order.push(receipt.id);
+      return acc;
+    }, initial);
     return { body: normalizedReceipts };
   } catch (error) {
     console.error('Error retrieving', error);
@@ -69,8 +69,7 @@ const edit = async (req: Request): ResponseData => {
   const params: UpdateItemInput = {
     TableName,
     Key: { id: receipt.id },
-    UpdateExpression:
-      'set image = :im, shopName = :sN, itemName = :iN, buyDate = :bD, totalPrice = :tP, warrantyPeriod = :w, userID = :u',
+    UpdateExpression: 'set image = :im, shopName = :sN, itemName = :iN, buyDate = :bD, totalPrice = :tP, warrantyPeriod = :w, userID = :u',
     ExpressionAttributeValues: {
       ':im': receipt.image,
       ':sN': receipt.shopName,
@@ -100,4 +99,23 @@ const deleteById = async ({ params: { id } }: Request): ResponseData => {
   }
 };
 
-module.exports = { create, getAll, getById, edit, deleteById };
+const getAllImages = async () => {
+  try {
+    const { Contents } = await s3.listObjects({ Bucket }).promise();
+    return { code: 200, body: Contents.map(({ Key, LastModified }) => ({ Key, LastModified })) };
+  } catch (error) {
+    console.error('Error getAllImages', error);
+    return { code: 400, body: error };
+  }
+};
+const getImage = async ({ params: { key } }: Request) => {
+  try {
+    const { Body: { data }, ContentType } = await s3.getObject({ Bucket, Key: key }).promise();
+    return { code: 200, body: { buffer: data, type: ContentType } };
+  } catch (error) {
+    console.log('Error', error);
+    return { code: 400, body: error };
+  }
+};
+
+module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage };
