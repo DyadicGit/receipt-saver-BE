@@ -8,5 +8,6 @@
   "IS_OFFLINE": false,
   "TABLE_RECEIPT": "receipt-table",
   "TABLE_ITEM": "item-table",
-  "TABLE_USERS": "users-table"
+  "TABLE_USERS": "users-table",
+  "BUCKET_RECEIPTS": "receipts-bucket"
 }

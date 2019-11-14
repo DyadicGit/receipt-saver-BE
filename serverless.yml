@@ -3,7 +3,11 @@ app: receipt-saver-be
 service: rs-service
 
 custom:
-  defaultEnv: ${file(./config/default_env.json)}
+  defaultEnv: ${file(./default_env.json)}
+  tableReceiptName: ${self:service}-${self:custom.defaultEnv.TABLE_RECEIPT}-${self:provider.stage}
+  tableItemName: ${self:service}-${self:custom.defaultEnv.TABLE_ITEM}-${self:provider.stage}
+  tableUsersName: ${self:service}-${self:custom.defaultEnv.TABLE_USERS}-${self:provider.stage}
+  bucketReceiptsName: ${self:service}-${self:custom.defaultEnv.BUCKET_RECEIPTS}-${self:provider.stage}
   serverless-offline:
     port: ${self:custom.defaultEnv.SERVERLESS_PORT}
   dynamodb:
@@ -24,9 +28,10 @@ provider:
   environment: 
     NODE_ENV: ${self:custom.defaultEnv.NODE_ENV}
     CLIENT_URL: ${self:custom.defaultEnv.CLIENT_URL}
-    TABLE_RECEIPT: ${self:service}-${self:custom.defaultEnv.TABLE_RECEIPT}-${self:provider.stage}
-    TABLE_ITEM: ${self:service}-${self:custom.defaultEnv.TABLE_ITEM}-${self:provider.stage}
-    TABLE_USERS: ${self:service}-${self:custom.defaultEnv.TABLE_USERS}-${self:provider.stage}
+    TABLE_RECEIPT: ${self:custom.tableReceiptName}
+    TABLE_ITEM: ${self:custom.tableItemName}
+    TABLE_USERS: ${self:custom.tableUsersName}
+    BUCKET_RECEIPTS: ${self:custom.bucketReceiptsName}
   iamRoleStatements:
       - Effect: Allow
         Action:
@@ -55,23 +60,10 @@ functions:
 
 
 resources:
-  Resources:
-    ReceiptDynamoDBTable:
-      Type: 'AWS::DynamoDB::Table'
-      DeletionPolicy: Retain
-      Properties:
-        AttributeDefinitions:
-          -
-            AttributeName: id
-            AttributeType: S
-        KeySchema:
-          -
-            AttributeName: id
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 1
-          WriteCapacityUnits: 1
-        TableName: ${self:provider.environment.TABLE_RECEIPT}
+  # DynamoDB
+  - ${file(resources/dynamodb-table.yml)}
+  # S3
+  - ${file(resources/s3-bucket.yml)}
 
 plugins:
   - serverless-dynamodb-local
