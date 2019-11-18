@@ -3,7 +3,7 @@ export interface Receipt extends RequestReceipt{
     creationDate: number;
 }
 export interface RequestReceipt {
-    image: string;
+    images: string[];
     shopName: string;
     itemId: string;
     itemName: string;
@@ -29,7 +29,7 @@ export interface User {
 
 export const setDefaults = (receipt: Receipt): Receipt => ({
     id: receipt.id,
-    image: receipt.image || null,
+    images: receipt.images || [],
     shopName: receipt.shopName || null,
     itemId: receipt.itemId || null,
     itemName: receipt.itemName || null,
@@ -39,3 +39,7 @@ export const setDefaults = (receipt: Receipt): Receipt => ({
     warrantyPeriod: receipt.warrantyPeriod || null,
     userID: receipt.userID || null
 });
+
+export enum AttachmentFieldName {
+    RECEIPT = 'receiptImage'
+}

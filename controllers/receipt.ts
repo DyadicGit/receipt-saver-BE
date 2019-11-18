@@ -6,16 +6,22 @@ import { Receipt, RequestReceipt, setDefaults } from '../config/DomainTypes';
 import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
-import { PutObjectRequest } from 'aws-sdk/clients/s3';
-const fs = require('fs');
 
 const { s3, dynamoDb } = require('./AwsInstances');
 
 const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
 
-const create = async (req: Request): PromisedResponse => {
+const create = async (req: Request & { files: any[] }): PromisedResponse => {
   const body: RequestReceipt = req.body;
-  const newReceipt = { ...setDefaults({ ...body, creationDate: null, id: uuid.v1() }) };
+  const newReceipt: Receipt = {
+    ...setDefaults({
+      ...body,
+      creationDate: null,
+      id: uuid.v1(),
+      images: req.files.length ? req.files.map(f => f.key) : []
+    })
+  };
+
   try {
     await dynamoDb.put({ TableName, Item: newReceipt }).promise();
     return { body: newReceipt };
@@ -65,14 +71,14 @@ const getById = async ({ params: { id } }: Request): PromisedResponse => {
     return { code: 400, body: { error: 'Error retrieving', message: e.message } };
   }
 };
-const edit = async (req: Request): PromisedResponse => {
-  const receipt: Receipt = setDefaults(req.body);
+const edit = async (req): PromisedResponse => {
+  const receipt: Receipt = { ...setDefaults(req.body), images: req.files.length ? req.files.map(f => f.key) : [] };
   const params: UpdateItemInput = {
     TableName,
     Key: { id: receipt.id },
     UpdateExpression: 'set image = :im, shopName = :sN, itemName = :iN, buyDate = :bD, totalPrice = :tP, warrantyPeriod = :w, userID = :u',
     ExpressionAttributeValues: {
-      ':im': receipt.image,
+      ':im': receipt.images,
       ':sN': receipt.shopName,
       ':iN': receipt.itemName,
       ':bD': receipt.buyDate,
@@ -121,34 +127,4 @@ const getImage = async ({ params: { key } }: Request): Promise<ImageResponse> =>
   }
 };
 
-const uploadImage = async (req, res) => {
-  try {
-    if (!req.file) {
-      res.send({
-        status: false,
-        message: 'No file uploaded'
-      });
-    } else {
-      const file = req.file;
-      console.log(file);
-      const Key = file.key;
-      // const params: PutObjectRequest = { Key, Bucket, Body: fs.createReadStream(file.path), ContentType: file.mimeType, ACL: 'public-read' };
-      // const options = { partSize: 10 * 1024 * 1024, queueSize: 1 };
-/*      const data = await s3.upload(params).promise();
-      if (data) {
-        fs.unlinkSync(req.file.path);
-      }*/
-      // console.log('s3:', data);
-      res.send({
-        status: true,
-        message: 'File is uploaded',
-        key: Key,
-        fileMeta: file
-      });
-    }
-  } catch (err) {
-    res.status(500).send(err);
-  }
-};
-
-module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage, uploadImage };
+module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage };
