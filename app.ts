@@ -1,6 +1,40 @@
 import express, { Request, Response } from 'express';
+const { s3 } = require('./controllers/AwsInstances');
+import mime from 'mime';
+import multer from 'multer';
+import multerS3 from "multer-s3";
 import { handler } from './config/handlerCreator';
+const { BUCKET_RECEIPTS: bucket } = process.env;
+
 const app = express();
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads');
+  },
+  filename: (req, file, callback) => {
+    callback(null, `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`);
+  }
+});
+
+const uploadOld = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+const upload = multer({
+  storage: multerS3({
+    s3: s3,
+    bucket: bucket,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: function (req, file, cb) {
+      cb(null, {fieldName: file.fieldname});
+    },
+    key: function (req, file, cb) {
+      cb(null, `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`)
+    }
+  })
+});
+
 const CLIENT_URL = process.env.CLIENT_URL || '*';
 const receipt = require('./controllers/receipt');
 
@@ -36,5 +70,6 @@ app.put('/receipt', handler(receipt.edit));
 app.delete('/receipt/:id', handler(receipt.deleteById));
 app.get('/image', handler(receipt.getAllImages));
 app.get('/image/:key', handler(receipt.getImage));
+app.post('/image', upload.single('receiptImage'), receipt.uploadImage);
 
 module.exports = app;
