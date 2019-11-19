@@ -29,7 +29,7 @@ export interface User {
 
 export const setDefaults = (receipt: Receipt): Receipt => ({
     id: receipt.id,
-    images: receipt.images || [],
+    images: (receipt.images && Array.isArray(receipt.images)) ? receipt.images : [],
     shopName: receipt.shopName || null,
     itemId: receipt.itemId || null,
     itemName: receipt.itemName || null,
