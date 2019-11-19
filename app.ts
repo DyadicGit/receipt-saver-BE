@@ -59,7 +59,8 @@ app.get('/receipt', handler(receipt.getAll));
 app.get('/receipt/:id', handler(receipt.getById));
 app.put('/receipt', upload.array(AttachmentFieldName.RECEIPT), handler(receipt.edit));
 app.delete('/receipt/:id', handler(receipt.deleteById));
-app.get('/image', handler(receipt.getAllImages));
+app.get('/image/all', handler(receipt.getAllImages));
 app.get('/image/:key', handler(receipt.getImage));
+app.get('/image/byReceiptId/:id', handler(receipt.getImageByReceiptId));
 
 module.exports = app;

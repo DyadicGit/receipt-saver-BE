@@ -116,15 +116,44 @@ const getAllImages = async (): Promise<AllImageResponse> => {
     return { code: 400, body: e };
   }
 };
-type ImageResponse = ResponseData & { body: { buffer: { type: string; data: Buffer }; contentType: string } };
-const getImage = async ({ params: { key } }: Request): Promise<ImageResponse> => {
+
+type ImageResponse = { buffer: { type: string; data: Buffer }; contentType: string; key: string };
+const getImageResponse = async (key: string): Promise<ImageResponse> => {
+  const resp = await s3.getObject({ Bucket, Key: key }).promise();
+  return { buffer: resp.Body, contentType: resp.ContentType, key: resp.Metadata.fieldname };
+};
+
+const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { body: ImageResponse }> => {
   try {
-    const { Body: buffer, ContentType: contentType } = await s3.getObject({ Bucket, Key: key }).promise();
-    return { code: 200, body: { buffer, contentType } };
+    const imageResponse: ImageResponse = await getImageResponse(key);
+    return { code: 200, body: imageResponse };
   } catch (e) {
     console.log('Error', e);
     return { code: 400, body: e };
   }
 };
 
-module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage };
+const getImageByReceiptId = async ({ params: { id } }: Request): Promise<ResponseData & { body: ImageResponse[]}> => {
+  const params: GetItemInput = {
+    TableName,
+    Key: { id }
+  };
+  try {
+    const result: GetItemOutput = await dynamoDb.get(params).promise();
+    if (result.Item) {
+      const receipt: Receipt = result.Item as Receipt;
+      const promisedImageResponses
+        = Array.isArray(receipt.images)
+        ? receipt.images.map(getImageResponse)
+        : [];
+      const imageResponses: ImageResponse[] = await Promise.all(promisedImageResponses);
+      return { code: 200, body: imageResponses};
+    } else {
+      throw new Error(`Receipt by id:${id} not found`);
+    }
+  } catch (e) {
+    console.log('Error', e);
+    return { code: 400, body: e };
+  }
+};
+module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage, getImageByReceiptId };
