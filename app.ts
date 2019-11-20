@@ -17,9 +17,6 @@ const upload = multer({
     s3: s3,
     bucket: bucket,
     contentType: multerS3.AUTO_CONTENT_TYPE,
-    metadata: function (req, file, cb) {
-      cb(null, {fieldName: generateFileName(file)});
-    },
     key: function (req, file, cb) {
       cb(null, generateFileName(file))
     }

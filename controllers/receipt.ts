@@ -68,9 +68,9 @@ const edit = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
     await db.updateReceiptInDB(newReceipt);
     const images = await storage.getImagesData(newReceipt.images);
     return { body: { receipt: newReceipt, images } };
-  } catch (error) {
-    console.error(`Error updating, id: ${newReceipt.id}: `, error);
-    return { code: 400, body: { error: 'Could not update' } } as any;
+  } catch (e) {
+    console.error(`Error updating, id: ${newReceipt.id}: `, e);
+    return { code: 400, body: { error: 'Could not update', message: e.message } } as any;
   }
 };
 

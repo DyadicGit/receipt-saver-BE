@@ -10,7 +10,6 @@ custom:
   bucketReceiptsName: ${self:service}-${self:custom.defaultEnv.BUCKET_RECEIPTS}-${self:provider.stage}
   serverless-offline:
     port: ${self:custom.defaultEnv.SERVERLESS_PORT}
-    resourceRoutes: true
   dynamodb:
     stages:
       - ${self:provider.stage}
@@ -46,7 +45,7 @@ provider:
           - { "Fn::GetAtt": ["ReceiptDynamoDBTable", "Arn" ] }
   apiGateway:
     binaryMediaTypes:
-      - '*/*'
+      - 'image/*'
 
 functions:
   app:
