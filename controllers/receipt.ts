@@ -1,64 +1,24 @@
-import * as uuid from 'uuid';
 import { Request } from 'express';
-import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-import { PromisedResponse, ResponseData } from '../config/handlerCreator';
-import { Receipt, RequestReceipt, setDefaults } from '../config/DomainTypes';
-import { DeleteObjectsRequest, ObjectIdentifierList } from 'aws-sdk/clients/s3';
-import GetItemOutput = DocumentClient.GetItemOutput;
-import GetItemInput = DocumentClient.GetItemInput;
-import UpdateItemInput = DocumentClient.UpdateItemInput;
+import { ResponseData } from '../config/handlerCreator';
+import { getReceiptFromRequest, getUploadedImageKeys, ImageData, Receipt, ReceiptWithImages, RequestWithFiles } from '../config/DomainTypes';
+import { ObjectIdentifierList } from 'aws-sdk/clients/s3';
+import repository, { ImageMetadataList } from './repository';
 
-const { s3, dynamoDb } = require('./AwsInstances');
+const { db, storage } = repository;
 
-const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
+type ReceiptWithImagesResponse = Promise<ResponseData & { body: ReceiptWithImages }>;
 
-const getReceipt = async (id): Promise<Receipt | null> => {
-  const params: GetItemInput = {
-    TableName,
-    Key: { id }
-  };
-  const result: GetItemOutput = await dynamoDb.get(params).promise();
-  return result.Item ? (result.Item as Receipt) : null;
-};
-const updateReceipt = async (receipt: Receipt) => {
-  const params: UpdateItemInput = {
-    TableName,
-    Key: { id: receipt.id },
-    UpdateExpression: 'set images = :im, shopName = :sN, itemName = :iN, buyDate = :bD, totalPrice = :tP, warrantyPeriod = :w, userID = :u',
-    ExpressionAttributeValues: {
-      ':im': receipt.images,
-      ':sN': receipt.shopName,
-      ':iN': receipt.itemName,
-      ':bD': receipt.buyDate,
-      ':tP': receipt.totalPrice,
-      ':w': receipt.warrantyPeriod,
-      ':u': receipt.userID
-    }
-  };
-  return await dynamoDb.update(params).promise();
-};
-const deleteImages = async (keys: ObjectIdentifierList) => {
-  const s3Params: DeleteObjectsRequest = { Bucket, Delete: { Objects: keys } };
-  return await s3.deleteObjects(s3Params).promise();
-};
-
-const create = async (req: Request & { files: any[] }): PromisedResponse => {
-  const body: RequestReceipt = req.body;
-  const newReceipt: Receipt = {
-    ...setDefaults({
-      ...body,
-      creationDate: null,
-      id: uuid.v1(),
-      images: req.files.length ? req.files.map(f => f.key) : []
-    })
-  };
-
+const create = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
+  const uploadedImageKeys = getUploadedImageKeys(req);
+  const receiptFromRequest = getReceiptFromRequest(req);
+  const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImageKeys) };
   try {
-    await dynamoDb.put({ TableName, Item: newReceipt }).promise();
-    return { body: newReceipt };
+    await db.createReceiptInDB(newReceipt);
+    const images = await storage.getImagesData(newReceipt.images);
+    return { body: { receipt: newReceipt, images } };
   } catch (e) {
     console.error('Error creating', e);
-    return { code: 400, body: { error: 'Error creating', message: e.message } };
+    return { code: 400, body: { error: 'Error creating', message: e.message } } as any;
   }
 };
 
@@ -68,10 +28,9 @@ interface NormalizedReceipts {
 }
 const byDate = (a, b) => (a.buyDate | a.creationDate) - (b.buyDate | b.creationDate);
 
-const getAll = async (): PromisedResponse => {
+const getAll = async (): Promise<ResponseData & { body: NormalizedReceipts }> => {
   try {
-    const result = await dynamoDb.scan({ TableName }).promise();
-    const receipts: Receipt[] = result.Items;
+    const receipts: Receipt[] = await db.getAllReceiptsFromDB();
     const initial: NormalizedReceipts = { byId: {}, order: [] };
     const normalizedReceipts = receipts.sort(byDate).reduce((acc: NormalizedReceipts, receipt: Receipt) => {
       acc.byId[receipt.id] = receipt;
@@ -81,74 +40,67 @@ const getAll = async (): PromisedResponse => {
     return { body: normalizedReceipts };
   } catch (e) {
     console.error('Error retrieving', e);
-    return { code: 400, body: { error: 'Error retrieving', message: e.message } };
+    return { code: 400, body: { error: 'Error retrieving', message: e.message } } as any;
   }
 };
 
-const getById = async ({ params: { id } }: Request): PromisedResponse => {
+const getById = async ({ params: { id } }: Request): Promise<ResponseData & { body: Receipt }> => {
   try {
-    const receipt = getReceipt(id);
+    const receipt = await db.getReceiptFromDB(id);
     if (receipt) {
       return { body: receipt };
     } else {
-      return { code: 404, body: { error: `Receipt by id:${id} not found` } };
+      return { code: 404, body: { error: `Receipt by id:${id} not found` } } as any;
     }
   } catch (e) {
     console.error('Error retrieving', e);
-    return { code: 400, body: { error: 'Error retrieving', message: e.message } };
+    return { code: 400, body: { error: 'Error retrieving', message: e.message } } as any;
   }
 };
-const edit = async (req): PromisedResponse => {
-  const defaultedReceipt = setDefaults({...req.body, images: (typeof req.body.images === 'string') ? req.body.images.split('/') : req.body.images});
-  const receipt: Receipt = {
-    ...defaultedReceipt,
-    images: req.files.length ? defaultedReceipt.images.concat(req.files.map(f => f.key)): defaultedReceipt.images
-  };
+const edit = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
+  const uploadedImageKeys = getUploadedImageKeys(req);
+  const receiptFromRequest = getReceiptFromRequest(req);
+  const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImageKeys) };
   try {
-    const receiptFromDb = await getReceipt(receipt.id);
-    const deletedImages: ObjectIdentifierList = receiptFromDb.images.filter(dbId => !receipt.images.includes(dbId)).map(Key => ({ Key }));
-    await deleteImages(deletedImages);
-    await updateReceipt(receipt);
-    return { body: receipt };
+    const receiptFromDb = await db.getReceiptFromDB(receiptFromRequest.id);
+    const imagesToRemove: ObjectIdentifierList = receiptFromDb.images.filter(dbId => !receiptFromRequest.images.includes(dbId)).map(Key => ({ Key }));
+    await storage.deleteImages(imagesToRemove);
+    await db.updateReceiptInDB(newReceipt);
+    const images = await storage.getImagesData(newReceipt.images);
+    return { body: { receipt: newReceipt, images } };
   } catch (error) {
-    console.error(`Error updating, id: ${receipt.id}: `, error);
-    return { code: 400, body: { error: 'Could not update' } };
+    console.error(`Error updating, id: ${newReceipt.id}: `, error);
+    return { code: 400, body: { error: 'Could not update' } } as any;
   }
 };
 
-const deleteById = async ({ params: { id } }: Request): PromisedResponse => {
+const deleteById = async ({ params: { id } }: Request): Promise<ResponseData & { body: { success: boolean; error?: string } }> => {
   try {
-    const receiptFromDb = await getReceipt(id);
+    const receiptFromDb = await db.getReceiptFromDB(id);
     const imagesToRemove: ObjectIdentifierList = receiptFromDb.images.map(Key => ({ Key }));
-    await deleteImages(imagesToRemove);
-    await dynamoDb.delete({ TableName, Key: { id } }).promise();
+    if (imagesToRemove.length) {
+      await storage.deleteImages(imagesToRemove);
+    }
+    await db.deleteReceiptFromDB;
     return { body: { success: true } };
   } catch (e) {
     console.error(`Error deleting, id ${id}`, e);
-    return { code: 400, body: { error: 'Could not delete' } };
+    return { code: 400, body: { success: false, error: 'Could not delete' } };
   }
 };
 
-type AllImageResponse = ResponseData & { body: Array<{ Key: string; LastModified: string }> };
-const getAllImages = async (): Promise<AllImageResponse> => {
+const getAllImages = async (): Promise<ResponseData & { body: ImageMetadataList }> => {
   try {
-    const { Contents } = await s3.listObjects({ Bucket }).promise();
-    return { code: 200, body: Contents.map(({ Key, LastModified }) => ({ Key, LastModified })) };
+    return { code: 200, body: await storage.getAllImagesMetadata() };
   } catch (e) {
     console.error('Error getAllImages', e);
     return { code: 400, body: e };
   }
 };
 
-type ImageResponse = { buffer: { type: string; data: Buffer }; contentType: string; key: string };
-const getImageResponse = async (key: string): Promise<ImageResponse> => {
-  const resp = await s3.getObject({ Bucket, Key: key }).promise();
-  return { buffer: resp.Body, contentType: resp.ContentType, key: resp.Metadata.fieldname };
-};
-
-const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { body: ImageResponse }> => {
+const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { body: ImageData }> => {
   try {
-    const imageResponse: ImageResponse = await getImageResponse(key);
+    const imageResponse: ImageData = await storage.getImageData(key);
     return { code: 200, body: imageResponse };
   } catch (e) {
     console.log('Error', e);
@@ -156,15 +108,14 @@ const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { 
   }
 };
 
-const getImageByReceiptId = async ({ params: { id } }: Request): Promise<ResponseData & { body: ImageResponse[] }> => {
+const getImageByReceiptId = async ({ params: { id } }: Request): Promise<ResponseData & { body: ImageData[] }> => {
   try {
-    const receipt: Receipt = await getReceipt(id);
+    const receipt: Receipt = await db.getReceiptFromDB(id);
     if (receipt) {
-      const promisedImageResponses = Array.isArray(receipt.images) ? receipt.images.map(getImageResponse) : [];
-      const imageResponses: ImageResponse[] = await Promise.all(promisedImageResponses);
+      const imageResponses: ImageData[] = await storage.getImagesData(receipt.images);
       return { code: 200, body: imageResponses };
     } else {
-      throw new Error(`Receipt by id:${id} not found`);
+      return { code: 404, body: { error: `Receipt by id:${id} not found` } } as any;
     }
   } catch (e) {
     console.log('Error', e);
