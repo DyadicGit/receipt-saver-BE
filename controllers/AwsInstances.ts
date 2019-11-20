@@ -8,4 +8,6 @@ const dynamoDb: DocumentClient = process.env.IS_OFFLINE
     })
   : new AWS.DynamoDB.DocumentClient();
 
-module.exports = dynamoDb;
+const s3 = new AWS.S3();
+
+module.exports = { dynamoDb, s3 };

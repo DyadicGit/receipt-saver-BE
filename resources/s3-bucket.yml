@@ -1,0 +1,19 @@
+Resources:
+  ReceiptBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${self:custom.bucketReceiptsName}
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedOrigins:
+              - '*'
+            AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - DELETE
+              - HEAD
+            MaxAge: 3000
