@@ -6,7 +6,8 @@ import { handler } from './config/handlerCreator';
 import { AttachmentFieldName } from "./config/DomainTypes";
 
 const { s3 } = require('./controllers/AwsInstances');
-const { BUCKET_RECEIPTS: bucket } = process.env;
+
+const { BUCKET_RECEIPTS: bucket, CLIENT_URL: ALLOWED_CORS_ORIGIN} = process.env;
 const app = express();
 
 const generateFileName = (file) => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
@@ -14,8 +15,8 @@ const generateFileName = (file) => `${file.fieldname}-${Date.now()}.${mime.getEx
 const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
   storage: multerS3({
-    s3: s3,
-    bucket: bucket,
+    s3,
+    bucket,
     contentType: multerS3.AUTO_CONTENT_TYPE,
     key: function (req, file, cb) {
       cb(null, generateFileName(file))
@@ -23,7 +24,6 @@ const upload = multer({
   })
 });
 
-const CLIENT_URL = process.env.CLIENT_URL || '*';
 const receipt = require('./controllers/receipt');
 
 // For Handling unhandled promise rejection
@@ -41,7 +41,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Cors
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', CLIENT_URL);
+  res.header('Access-Control-Allow-Origin', ALLOWED_CORS_ORIGIN || '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   next();
