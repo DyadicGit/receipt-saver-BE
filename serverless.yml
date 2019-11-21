@@ -8,7 +8,6 @@ custom:
   tableItemName: ${self:service}-${self:custom.defaultEnv.TABLE_ITEM}-${self:provider.stage}
   tableUsersName: ${self:service}-${self:custom.defaultEnv.TABLE_USERS}-${self:provider.stage}
   bucketReceiptsName: ${self:service}-${self:custom.defaultEnv.BUCKET_RECEIPTS}-${self:provider.stage}
-  region: ${self:custom.defaultEnv.REGION}
   serverless-offline:
     port: ${self:custom.defaultEnv.SERVERLESS_PORT}
   dynamodb:
@@ -16,16 +15,18 @@ custom:
       - ${self:provider.stage}
     start:
       port: ${self:custom.defaultEnv.DB_PORT}
-      inMemory: true
+      inMemory: false
       migrate: true
-    migration:
-      dir: offline
+      dbPath: offline
+  s3:
+    port: ${self:custom.defaultEnv.S3_PORT}
+    directory: offline
 
 provider:
   name: aws
   runtime: nodejs10.x
   stage: ${env:STAGE}
-  region: ${self:custom.region}
+  region: eu-west-2
   environment: 
     TABLE_RECEIPT: ${self:custom.tableReceiptName}
     TABLE_ITEM: ${self:custom.tableItemName}
@@ -85,5 +86,6 @@ resources:
 
 plugins:
   - serverless-dotenv-plugin
+  - serverless-s3-local
   - serverless-dynamodb-local
   - serverless-offline
