@@ -8,6 +8,7 @@ custom:
   tableItemName: ${self:service}-${self:custom.defaultEnv.TABLE_ITEM}-${self:provider.stage}
   tableUsersName: ${self:service}-${self:custom.defaultEnv.TABLE_USERS}-${self:provider.stage}
   bucketReceiptsName: ${self:service}-${self:custom.defaultEnv.BUCKET_RECEIPTS}-${self:provider.stage}
+  region: ${self:custom.defaultEnv.REGION}
   serverless-offline:
     port: ${self:custom.defaultEnv.SERVERLESS_PORT}
   dynamodb:
@@ -23,11 +24,9 @@ custom:
 provider:
   name: aws
   runtime: nodejs10.x
-  stage: prod
-  region: eu-west-2
+  stage: ${env:STAGE}
+  region: ${self:custom.region}
   environment: 
-    NODE_ENV: ${self:custom.defaultEnv.NODE_ENV}
-    CLIENT_URL: ${self:custom.defaultEnv.CLIENT_URL}
     TABLE_RECEIPT: ${self:custom.tableReceiptName}
     TABLE_ITEM: ${self:custom.tableItemName}
     TABLE_USERS: ${self:custom.tableUsersName}
@@ -43,6 +42,16 @@ provider:
           - dynamodb:DeleteItem
         Resource:
           - { "Fn::GetAtt": ["ReceiptDynamoDBTable", "Arn" ] }
+      - Effect: Allow
+        Action:
+          - s3:PutObject
+          - s3:PutObjectAcl
+          - s3:GetObject
+          - s3:GetObjectAcl
+          - s3:DeleteObject
+          - s3:DeleteObjectAcl
+        Resource:
+          - { "Fn::GetAtt": ["ReceiptBucket", "Arn" ] }
   apiGateway:
     binaryMediaTypes:
       - 'image/*'
@@ -75,5 +84,6 @@ resources:
   - ${file(resources/s3-bucket.yml)}
 
 plugins:
+  - serverless-dotenv-plugin
   - serverless-dynamodb-local
   - serverless-offline

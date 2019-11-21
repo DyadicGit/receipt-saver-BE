@@ -64,7 +64,9 @@ const edit = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
   try {
     const receiptFromDb = await db.getReceiptFromDB(receiptFromRequest.id);
     const imagesToRemove: ObjectIdentifierList = receiptFromDb.images.filter(dbId => !receiptFromRequest.images.includes(dbId)).map(Key => ({ Key }));
-    await storage.deleteImages(imagesToRemove);
+    if (imagesToRemove.length) {
+      await storage.deleteImages(imagesToRemove);
+    }
     await db.updateReceiptInDB(newReceipt);
     const images = await storage.getImagesData(newReceipt.images);
     return { body: { receipt: newReceipt, images } };
@@ -81,7 +83,7 @@ const deleteById = async ({ params: { id } }: Request): Promise<ResponseData & {
     if (imagesToRemove.length) {
       await storage.deleteImages(imagesToRemove);
     }
-    await db.deleteReceiptFromDB;
+    await db.deleteReceiptFromDB(id);
     return { body: { success: true } };
   } catch (e) {
     console.error(`Error deleting, id ${id}`, e);
