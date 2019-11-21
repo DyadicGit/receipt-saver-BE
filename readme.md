@@ -3,9 +3,10 @@
 #### Development setup
 **Setup**
 * `npm install`
-* `serverless dynamodb install`
+* `serverless dynamodb install` (run it for the first or every time when you delete the ".dynamodb" folder)
+* `sls plugin install --name serverless-s3-local` (notice it's directory should be manually created in my case "offline/s3")
 * `serverless offline start`
-* `serverless dynamodb migrate` (this imports schema)
+* `serverless dynamodb --migrate` (this imports schema)
 
 **Run service offline for specific environment**
 

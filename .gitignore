@@ -10,3 +10,6 @@ yarn-error.log*
 # Ignores compiled TypeScript files
 build/*
 .env.**
+
+offline/*
+!offline/readme.md

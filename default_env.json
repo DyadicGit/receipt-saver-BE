@@ -1,8 +1,8 @@
 {
-  "REGION": "eu-west-2",
   "SERVER_PORT": "4000",
   "SERVERLESS_PORT": "5000",
   "DB_PORT": "8000",
+  "S3_PORT": "9000",
   "TABLE_RECEIPT": "receipt-table",
   "TABLE_ITEM": "item-table",
   "TABLE_USERS": "users-table",

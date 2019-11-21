@@ -6,8 +6,9 @@
   "scripts": {
     "local:start": "tsc && node ./build/app.local.js ",
     "local:debug": "tsc && node --inspect ./build/app.local.js",
-    "sls:start": "serverless offline start --env development",
+    "sls:start": "tsc && serverless offline start --env development",
     "sls:debug": "tsc && node --inspect %slsloc% offline start --env development",
+    "db:migrate": "serverless dynamodb --migrate",
     "build": "tsc",
     "tsc:watch": "tsc -w",
     "deploy": "tsc && serverless deploy --env production"
@@ -29,6 +30,7 @@
     "serverless-dotenv-plugin": "^2.1.1",
     "serverless-dynamodb-local": "^0.2.38",
     "serverless-offline": "^5.12.0",
+    "serverless-s3-local": "^0.5.3",
     "tslint": "^5.20.0",
     "typescript": "^3.6.4"
   }
