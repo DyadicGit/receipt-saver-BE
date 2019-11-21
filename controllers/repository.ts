@@ -52,14 +52,16 @@ const deleteImages = async (keys: ObjectIdentifierList) => {
   return await s3.deleteObjects(s3Params).promise();
 };
 
-const getImageData = async (key: string): Promise<ImageData> => {
-  const resp = await s3.getObject({ Bucket, Key: key }).promise();
-  return { buffer: resp.Body, contentType: resp.ContentType, key };
+
+const signedUrlExpireSeconds = 1*60*60; // 1 hour
+const getImageUrl = async (key: string): Promise<ImageData> => {
+  const url: string = await s3.getSignedUrlPromise('getObject', { Bucket, Key: key, Expires: signedUrlExpireSeconds });
+  return { url, key }
 };
 
-const getImagesData = async (keys: string[]): Promise<ImageData[]> => {
-  const promisedImageResponses = keys && Array.isArray(keys) ? keys.map(getImageData) : [];
-  return await Promise.all(promisedImageResponses);
+const getImagesUrls = async (keys: string[]): Promise<ImageData[]> => {
+  const promisedImages = keys && Array.isArray(keys) ? keys.map(getImageUrl) : [];
+  return await Promise.all(promisedImages);
 };
 
 export type ImageMetadataList = Array<{ Key: string; LastModified: string }>;
@@ -69,6 +71,6 @@ const getAllImagesMetadata = async (): Promise<ImageMetadataList> => {
 };
 
 export default {
-  storage: { deleteImages, getImageData, getImagesData, getAllImagesMetadata },
+  storage: { deleteImages, getImageUrl, getImagesUrls, getAllImagesMetadata },
   db: { getAllReceiptsFromDB, getReceiptFromDB, createReceiptInDB, updateReceiptInDB, deleteReceiptFromDB }
 };

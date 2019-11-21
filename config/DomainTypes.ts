@@ -29,7 +29,7 @@ export interface User {
 }
 
 export type ReceiptWithImages = { receipt: Receipt; images: ImageData[] };
-export type ImageData = { buffer: { type: string; data: Buffer }; contentType: string; key: string };
+export type ImageData = { url: string; key: string };
 
 export const setDefaults = (receipt: Receipt): Receipt => ({
   id: receipt.id || uuid.v1(),

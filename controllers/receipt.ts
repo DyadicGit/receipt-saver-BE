@@ -14,7 +14,7 @@ const create = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
   const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImageKeys) };
   try {
     await db.createReceiptInDB(newReceipt);
-    const images = await storage.getImagesData(newReceipt.images);
+    const images = await storage.getImagesUrls(newReceipt.images);
     return { body: { receipt: newReceipt, images } };
   } catch (e) {
     console.error('Error creating', e);
@@ -68,7 +68,7 @@ const edit = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
       await storage.deleteImages(imagesToRemove);
     }
     await db.updateReceiptInDB(newReceipt);
-    const images = await storage.getImagesData(newReceipt.images);
+    const images = await storage.getImagesUrls(newReceipt.images);
     return { body: { receipt: newReceipt, images } };
   } catch (e) {
     console.error(`Error updating, id: ${newReceipt.id}: `, e);
@@ -102,7 +102,7 @@ const getAllImages = async (): Promise<ResponseData & { body: ImageMetadataList 
 
 const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { body: ImageData }> => {
   try {
-    const imageResponse: ImageData = await storage.getImageData(key);
+    const imageResponse: ImageData = await storage.getImageUrl(key);
     return { code: 200, body: imageResponse };
   } catch (e) {
     console.log('Error', e);
@@ -110,11 +110,11 @@ const getImage = async ({ params: { key } }: Request): Promise<ResponseData & { 
   }
 };
 
-const getImageByReceiptId = async ({ params: { id } }: Request): Promise<ResponseData & { body: ImageData[] }> => {
+const getImagesByReceiptId = async ({ params: { id } }: Request): Promise<ResponseData & { body: ImageData[] }> => {
   try {
     const receipt: Receipt = await db.getReceiptFromDB(id);
     if (receipt) {
-      const imageResponses: ImageData[] = await storage.getImagesData(receipt.images);
+      const imageResponses: ImageData[] = await storage.getImagesUrls(receipt.images);
       return { code: 200, body: imageResponses };
     } else {
       return { code: 404, body: { error: `Receipt by id:${id} not found` } } as any;
@@ -124,4 +124,4 @@ const getImageByReceiptId = async ({ params: { id } }: Request): Promise<Respons
     return { code: 400, body: e };
   }
 };
-module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage, getImageByReceiptId };
+module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage, getImagesByReceiptId };
