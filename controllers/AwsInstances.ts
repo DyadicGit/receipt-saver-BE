@@ -23,4 +23,4 @@ const s3 =
       })
     : new AWS.S3({ accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY });
 
-module.exports = { dynamoDb, s3 };
+export default { dynamoDb, s3 };

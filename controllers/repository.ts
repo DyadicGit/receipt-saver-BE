@@ -5,14 +5,14 @@ import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import PutItemInput = DocumentClient.PutItemInput;
-
-const { s3, dynamoDb } = require('./AwsInstances');
+import awsInstances from './AwsInstances'
+const { s3, dynamoDb } = awsInstances;
 
 const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
 
 const getAllReceiptsFromDB = async (): Promise<Receipt[]> => {
   const data = await dynamoDb.scan({ TableName }).promise();
-  return data.Items;
+  return data.Items as Receipt[];
 };
 const getReceiptFromDB = async (id): Promise<Receipt | null> => {
   const params: GetItemInput = {
@@ -51,7 +51,6 @@ const deleteImages = async (keys: ObjectIdentifierList) => {
   const s3Params: DeleteObjectsRequest = { Bucket, Delete: { Objects: keys } };
   return await s3.deleteObjects(s3Params).promise();
 };
-
 
 const signedUrlExpireSeconds = 1*60*60; // 1 hour
 const getImageUrl = async (key: string): Promise<ImageData> => {

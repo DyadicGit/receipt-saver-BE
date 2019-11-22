@@ -57,6 +57,7 @@ provider:
     binaryMediaTypes:
       - 'image/*'
       - 'multipart/form-data'
+      - 'application/octet-stream'
 
 functions:
   app:

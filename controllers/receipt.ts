@@ -124,4 +124,4 @@ const getImagesByReceiptId = async ({ params: { id } }: Request): Promise<Respon
     return { code: 400, body: e };
   }
 };
-module.exports = { create, getAll, getById, edit, deleteById, getAllImages, getImage, getImagesByReceiptId };
+export default { create, getAll, getById, edit, deleteById, getAllImages, getImage, getImagesByReceiptId };

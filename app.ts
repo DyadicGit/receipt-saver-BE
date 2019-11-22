@@ -1,16 +1,18 @@
 import express, { Request, Response } from 'express';
 import mime from 'mime';
 import multer from 'multer';
-import multerS3 from "multer-s3";
+import multerS3 from 'multer-s3';
 import { handler } from './config/handlerCreator';
-import { AttachmentFieldName } from "./config/DomainTypes";
+import { AttachmentFieldName } from './config/DomainTypes';
+import awsInstances from './controllers/AwsInstances';
+import receipt from './controllers/receipt';
 
-const { s3 } = require('./controllers/AwsInstances');
+const { BUCKET_RECEIPTS: bucket, CLIENT_URL: ALLOWED_CORS_ORIGIN } = process.env;
 
-const { BUCKET_RECEIPTS: bucket, CLIENT_URL: ALLOWED_CORS_ORIGIN} = process.env;
+const { s3 } = awsInstances;
 const app = express();
 
-const generateFileName = (file) => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
+const generateFileName = file => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
 
 const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15 mb
@@ -18,13 +20,11 @@ const upload = multer({
     s3,
     bucket,
     contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function (req, file, cb) {
-      cb(null, generateFileName(file))
+    key: function(req, file, cb) {
+      cb(null, generateFileName(file));
     }
   })
 });
-
-const receipt = require('./controllers/receipt');
 
 // For Handling unhandled promise rejection
 process.on('unhandledRejection', (reason: any) => {
@@ -40,7 +40,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Cors
-const cacheHours = 24*60*60; // 24 hours
+const cacheHours = 24 * 60 * 60; // 24 hours
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', ALLOWED_CORS_ORIGIN || '*');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
