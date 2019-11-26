@@ -1,11 +1,15 @@
 import { ImageData, Receipt } from '../config/DomainTypes';
-import { DeleteObjectsRequest, ObjectIdentifierList } from 'aws-sdk/clients/s3';
+import { DeleteObjectsRequest, ObjectIdentifierList, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
+import awsInstances from './AwsInstances';
+import sharp from 'sharp';
+import mime from 'mime';
+import * as fs from "fs";
 import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import PutItemInput = DocumentClient.PutItemInput;
-import awsInstances from './AwsInstances'
+
 const { s3, dynamoDb } = awsInstances;
 
 const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
@@ -52,10 +56,10 @@ const deleteImages = async (keys: ObjectIdentifierList) => {
   return await s3.deleteObjects(s3Params).promise();
 };
 
-const signedUrlExpireSeconds = 1*60*60; // 1 hour
+const signedUrlExpireSeconds = 1 * 60 * 60; // 1 hour
 const getImageUrl = async (key: string): Promise<ImageData> => {
   const url: string = await s3.getSignedUrlPromise('getObject', { Bucket, Key: key, Expires: signedUrlExpireSeconds });
-  return { url, key }
+  return { url, key };
 };
 
 const getImagesUrls = async (keys: string[]): Promise<ImageData[]> => {
@@ -69,7 +73,34 @@ const getAllImagesMetadata = async (): Promise<ImageMetadataList> => {
   return Contents.map(({ Key, LastModified }) => ({ Key, LastModified }));
 };
 
+const params = (file: Express.Multer.File, buffer: Buffer, suffix: string = ''):PutObjectRequest => {
+ const extension = mime.getExtension(file.mimetype);
+  return ({
+    Key: file.filename.replace('.'+extension, `-${suffix}.${extension}`),
+    Body: buffer,
+    Bucket,
+    ACL: 'public-read',
+    ContentType: file.mimetype,
+    ContentLength: file.size
+  });
+};
+
+const resizeAndUploadImages = async (files: Express.Multer.File[]) => {
+  const res = [];
+  for (const file of files) {
+    const px320 = await sharp(file.path).rotate().resize(320).toBuffer();
+    const px600 = await sharp(file.path).rotate().resize(600).toBuffer();
+    const px800 = await sharp(file.path).rotate().resize(800).toBuffer();
+    const promiseOrig = await s3.upload(params(file, fs.readFileSync(file.path), 'orig')).promise();
+    const promisePx320 = await s3.upload(params(file, px320, '320px')).promise();
+    const promisePx600 = await s3.upload(params(file, px600, '600px')).promise();
+    const promisePx800 = await s3.upload(params(file, px800, '800px')).promise();
+    res.push({[file.filename]: {orig: promiseOrig,px320: promisePx320, px600:promisePx600, px800: promisePx800}})
+  }
+  return res;
+};
+
 export default {
-  storage: { deleteImages, getImageUrl, getImagesUrls, getAllImagesMetadata },
+  storage: { deleteImages, getImageUrl, getImagesUrls, getAllImagesMetadata, resizeAndUploadImages },
   db: { getAllReceiptsFromDB, getReceiptFromDB, createReceiptInDB, updateReceiptInDB, deleteReceiptFromDB }
 };

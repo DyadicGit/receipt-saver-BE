@@ -1,5 +1,5 @@
-import { Request } from 'express';
 import uuid = require('uuid');
+import { Request } from "express";
 
 export interface Receipt {
   id: string;
@@ -45,10 +45,9 @@ export const setDefaults = (receipt: Receipt): Receipt => ({
 });
 
 export const getReceiptFromRequest = (request: RequestWithFiles): Receipt => setDefaults(JSON.parse(request.body.receipt));
-export const getUploadedImageKeys = (request: RequestWithFiles): string[] => (request.files.length ? request.files.map(f => f.key) : []);
 
 export interface RequestWithFiles extends Request {
-  files: any[];
+  files: Express.Multer.File[]
   body: { receipt: string };
 }
 

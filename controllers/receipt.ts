@@ -1,21 +1,30 @@
 import { Request } from 'express';
 import { ResponseData } from '../config/handlerCreator';
-import { getReceiptFromRequest, getUploadedImageKeys, ImageData, Receipt, ReceiptWithImages, RequestWithFiles } from '../config/DomainTypes';
+import {
+  getReceiptFromRequest,
+  ImageData,
+  Receipt,
+  ReceiptWithImages,
+  RequestWithFiles,
+  setDefaults
+} from '../config/DomainTypes';
 import { ObjectIdentifierList } from 'aws-sdk/clients/s3';
 import repository, { ImageMetadataList } from './repository';
 
 const { db, storage } = repository;
 
 type ReceiptWithImagesResponse = Promise<ResponseData & { body: ReceiptWithImages }>;
-
 const create = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
-  const uploadedImageKeys = getUploadedImageKeys(req);
-  const receiptFromRequest = getReceiptFromRequest(req);
-  const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImageKeys) };
   try {
+    const receiptFromRequest = getReceiptFromRequest(req);
+    if (req.files.length) {
+      const data = await storage.resizeAndUploadImages(req.files);
+      return { body: { receipt: setDefaults({} as any), images: [], data } } as any;
+    }
+    const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat([]) };
     await db.createReceiptInDB(newReceipt);
     const images = await storage.getImagesUrls(newReceipt.images);
-    return { body: { receipt: newReceipt, images } };
+    return { body: { receipt: setDefaults({} as any), images: [] } } as any;
   } catch (e) {
     console.error('Error creating', e);
     return { code: 400, body: { error: 'Error creating', message: e.message } } as any;
@@ -58,7 +67,7 @@ const getById = async ({ params: { id } }: Request): Promise<ResponseData & { bo
   }
 };
 const edit = async (req: RequestWithFiles): ReceiptWithImagesResponse => {
-  const uploadedImageKeys = getUploadedImageKeys(req);
+  const uploadedImageKeys = [] || 'getUploadedImageKeys(req)';
   const receiptFromRequest = getReceiptFromRequest(req);
   const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImageKeys) };
   try {

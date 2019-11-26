@@ -1,27 +1,23 @@
 import express, { Request, Response } from 'express';
 import mime from 'mime';
 import multer from 'multer';
-import multerS3 from 'multer-s3';
 import { handler } from './config/handlerCreator';
 import { AttachmentFieldName } from './config/DomainTypes';
-import awsInstances from './controllers/AwsInstances';
 import receipt from './controllers/receipt';
 
-const { BUCKET_RECEIPTS: bucket, CLIENT_URL: ALLOWED_CORS_ORIGIN } = process.env;
+const { CLIENT_URL: ALLOWED_CORS_ORIGIN } = process.env;
 
-const { s3 } = awsInstances;
 const app = express();
-
-const generateFileName = file => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
+export const generateFileName = (file) => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
 
 const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15 mb
-  storage: multerS3({
-    s3,
-    bucket,
-    contentType: multerS3.AUTO_CONTENT_TYPE,
-    key: function(req, file, cb) {
-      cb(null, generateFileName(file));
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, './temp-uploads/');
+    },
+    filename: (req, file, callback) => {
+      callback(null, generateFileName(file));
     }
   })
 });
