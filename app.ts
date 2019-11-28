@@ -1,26 +1,10 @@
 import express, { Request, Response } from 'express';
-import mime from 'mime';
-import multer from 'multer';
 import { handler } from './config/handlerCreator';
-import { AttachmentFieldName } from './config/DomainTypes';
 import receipt from './controllers/receipt';
 
 const { CLIENT_URL: ALLOWED_CORS_ORIGIN } = process.env;
 
 const app = express();
-export const generateFileName = (file) => `${file.fieldname}-${Date.now()}.${mime.getExtension(file.mimetype)}`;
-
-const upload = multer({
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15 mb
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, './temp-uploads/');
-    },
-    filename: (req, file, callback) => {
-      callback(null, generateFileName(file));
-    }
-  })
-});
 
 // For Handling unhandled promise rejection
 process.on('unhandledRejection', (reason: any) => {
@@ -32,7 +16,7 @@ process.on('uncaughtException', error => {
   throw error;
 });
 // request.body parser
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: false }));
 
 // Cors
@@ -49,13 +33,12 @@ app.use((req, res, next) => {
 app.get('/helloWorld', (req: Request, res: Response) => {
   res.send('Hello World!');
 });
-app.post('/receipt', upload.array(AttachmentFieldName.RECEIPT), handler(receipt.create));
 app.get('/receipt', handler(receipt.getAll));
 app.get('/receipt/:id', handler(receipt.getById));
-app.put('/receipt', upload.array(AttachmentFieldName.RECEIPT), handler(receipt.edit));
+app.put('/receipt', handler(receipt.edit));
+app.post('/receipt', handler(receipt.create));
 app.delete('/receipt/:id', handler(receipt.deleteById));
 app.get('/image/all', handler(receipt.getAllImages));
-app.get('/image/:key', handler(receipt.getImage));
 app.get('/image/byReceiptId/:id', handler(receipt.getImagesByReceiptId));
 
 module.exports = app;
