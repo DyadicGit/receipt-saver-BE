@@ -4,7 +4,7 @@ import { Request } from 'express';
 export interface Receipt {
   id: string;
   creationDate: number;
-  images: ImageKey[];
+  images: ResponsiveImageDataList;
   shopName: string;
   itemId: string;
   itemName: string;
@@ -27,7 +27,6 @@ export interface User {
   social: string;
   receiptId: string;
 }
-export type ImageKey = { orig: string; px320: string; px600: string; px900: string };
 export type ReceiptWithImages = { receipt: Receipt; images: ResponsiveImageDataList };
 export type ResponsiveImageDataList = ResponsiveImageData[];
 export type ResponsiveImageData = { orig: ImageData; px320: ImageData; px600: ImageData; px900: ImageData };

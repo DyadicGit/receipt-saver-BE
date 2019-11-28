@@ -1,4 +1,4 @@
-import { AttachmentFieldName, ImageKey, Receipt, ResponsiveImageData, ResponsiveImageDataList, UploadedImages } from '../config/DomainTypes';
+import { AttachmentFieldName, Receipt, ResponsiveImageData, ResponsiveImageDataList, UploadedImages } from '../config/DomainTypes';
 import { DeleteObjectsRequest, ObjectIdentifierList, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import awsInstances from './AwsInstances';
@@ -56,20 +56,20 @@ const deleteImages = async (keys: ObjectIdentifierList) => {
 };
 
 const signedUrlExpireSeconds = 1 * 60 * 60; // 1 hour
-const getImageUrl = async (imageKey: ImageKey): Promise<ResponsiveImageData> => {
+const getImageUrl = async (data: ResponsiveImageData): Promise<ResponsiveImageData> => {
   const accumulator = {};
-  if (!Object.getOwnPropertyNames(imageKey).length) throw Error('imageKeys are empty');
+  if (!Object.getOwnPropertyNames(data).length) throw Error('imageKeys are empty');
 
-  for (const key in imageKey) {
+  for (const key in data) {
     accumulator[key] = {
-      url: await s3.getSignedUrlPromise('getObject', { Bucket, Key: imageKey[key], Expires: signedUrlExpireSeconds }),
-      key: imageKey[key]
+      url: await s3.getSignedUrl('getObject', { Bucket, Key: data[key].key, Expires: signedUrlExpireSeconds }),
+      key: data[key].key
     };
   }
   return accumulator as any;
 };
 
-const getImagesUrls = async (imageKeys: ImageKey[]): Promise<ResponsiveImageDataList> => {
+const getImagesUrls = async (imageKeys: ResponsiveImageDataList): Promise<ResponsiveImageDataList> => {
   const promisedImages = imageKeys && Array.isArray(imageKeys) ? imageKeys.map(getImageUrl) : [];
   return await Promise.all(promisedImages);
 };
@@ -106,21 +106,25 @@ const getBufferImage = base64 => {
         .toBuffer()
   };
 };
-
+export type ImageKey = { orig: string; px320: string; px600: string; px900: string };
 const resizeAndUploadImages = async (uploadedImages: UploadedImages[]): Promise<ImageKey[]> => {
-  const res = [];
+  const res: ImageKey[] = [];
   for (const file of uploadedImages) {
     const { name } = generateFileName(file.contentType);
     const { orig: origBuffer, resized } = getBufferImage(file.base64);
     const px320Buffer = await resized(320);
     const px600Buffer = await resized(600);
     const px900Buffer = await resized(900);
-    const { Key: orig } = await s3.upload(params(name('orig'), origBuffer, file.contentType)).promise();
-    const { Key: px320 } = await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
-    const { Key: px600 } = await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
-    const { Key: px900 } = await s3.upload(params(name('800px'), px900Buffer, file.contentType)).promise();
-
-    res.push({ orig, px320, px600, px900 });
+    await s3.upload(params(name('orig'), origBuffer, file.contentType)).promise();
+    await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
+    await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
+    await s3.upload(params(name('800px'), px900Buffer, file.contentType)).promise();
+    res.push({
+      orig: name('orig'),
+      px320: name('320px'),
+      px600: name('600px'),
+      px900: name('800px')
+    });
   }
   return res;
 };
