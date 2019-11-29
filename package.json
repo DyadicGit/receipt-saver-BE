@@ -6,30 +6,30 @@
   "scripts": {
     "local:start": "tsc && node ./build/app.local.js ",
     "local:debug": "tsc && node --inspect ./build/app.local.js",
-    "sls:start": "tsc && serverless offline start --env development",
-    "sls:debug": "tsc && node --inspect %slsloc% offline start --env development",
+    "sls:start": "prelocal.bat && tsc && serverless offline start --env development",
+    "sls:debug": "prelocal.bat && tsc && node --inspect %slsloc% offline start --env development",
     "db:migrate": "serverless dynamodb --migrate",
     "build": "tsc",
     "tsc:watch": "tsc -w",
-    "deploy": "tsc && serverless deploy --env production"
+    "deploy": "predeploy.bat && tsc && serverless deploy --env production"
   },
   "author": "Olgerd Seviakov",
   "dependencies": {
     "aws-sdk": "^2.553.0",
     "express": "^4.17.1",
     "mime": "^2.4.4",
-    "multer": "^1.4.2",
-    "multer-s3": "^2.9.0",
     "serverless-http": "^2.3.0",
+    "sharp": "^0.23.3",
     "uuid": "^3.3.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.1",
     "@types/node": "^12.11.1",
+    "@types/sharp": "^0.23.0",
     "@types/uuid": "^3.4.5",
     "serverless-dotenv-plugin": "^2.1.1",
     "serverless-dynamodb-local": "^0.2.38",
-    "serverless-offline": "^5.12.0",
+    "serverless-offline": "next",
     "serverless-s3-local": "^0.5.3",
     "tslint": "^5.20.0",
     "typescript": "^3.6.4"

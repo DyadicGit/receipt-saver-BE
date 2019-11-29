@@ -8,7 +8,7 @@
     "noImplicitAny": false,
     "sourceMap": true,
     "outDir": "build",
-    "lib": ["es6", "es2020"],
+    "lib": ["es6", "es2019", "es2020"],
     "types": ["node", "express", "uuid"]
   },
   "exclude": [

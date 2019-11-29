@@ -1,10 +1,10 @@
-import { Request } from 'express';
 import uuid = require('uuid');
+import { Request } from 'express';
 
 export interface Receipt {
   id: string;
   creationDate: number;
-  images: string[];
+  images: ResponsiveImageDataList;
   shopName: string;
   itemId: string;
   itemName: string;
@@ -27,8 +27,9 @@ export interface User {
   social: string;
   receiptId: string;
 }
-
-export type ReceiptWithImages = { receipt: Receipt; images: ImageData[] };
+export type ReceiptWithImages = { receipt: Receipt; images: ResponsiveImageDataList };
+export type ResponsiveImageDataList = ResponsiveImageData[];
+export type ResponsiveImageData = { orig: ImageData; px320: ImageData; px600: ImageData; px900: ImageData };
 export type ImageData = { url: string; key: string };
 
 export const setDefaults = (receipt: Receipt): Receipt => ({
@@ -44,14 +45,18 @@ export const setDefaults = (receipt: Receipt): Receipt => ({
   userID: receipt.userID || null
 });
 
-export const getReceiptFromRequest = (request: RequestWithFiles): Receipt => setDefaults(JSON.parse(request.body.receipt));
-export const getUploadedImageKeys = (request: RequestWithFiles): string[] => (request.files.length ? request.files.map(f => f.key) : []);
+export const getReceiptFromRequest = (request: RequestWithReceiptAndFiles): Receipt => setDefaults(request.body.receipt);
 
-export interface RequestWithFiles extends Request {
-  files: any[];
-  body: { receipt: string };
+export interface RequestWithReceiptAndFiles extends Request {
+  body: {
+    receipt: Receipt;
+    uploadedImages: UploadedImages[];
+  };
 }
-
+export interface UploadedImages {
+  base64: string;
+  contentType: string;
+}
 export enum AttachmentFieldName {
   RECEIPT = 'uploadedReceiptImage'
 }
