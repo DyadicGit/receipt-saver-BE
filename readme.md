@@ -4,7 +4,7 @@
 **Setup**
 * `npm install`
 * `serverless dynamodb install` (run it for the first or every time when you delete the ".dynamodb" folder)
-* `sls plugin install --name serverless-s3-local` (notice it's directory should be manually created in my case "offline/s3")
+* `sls plugin install --name serverless-s3-local` (notice it's directory should be manually created in my case "./offline/")
 * `serverless offline start`
 * `serverless dynamodb --migrate` (this imports schema)
 
