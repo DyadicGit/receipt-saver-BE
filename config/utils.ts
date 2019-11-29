@@ -13,3 +13,4 @@ export const handler = (callbackFn: Callback): ExpressJsCallback => {
   };
 };
 export const pipe = (...fns) => x => fns.reduce((v, f) => f(v), x);
+export const flatten = (arr) => arr.reduce((acc, x) => acc.concat(x), []);

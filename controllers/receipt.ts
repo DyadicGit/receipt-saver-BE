@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { pipe, ResponseData } from '../config/utils';
+import { flatten, pipe, ResponseData } from '../config/utils';
 import { getReceiptFromRequest, Receipt, ReceiptWithImages, RequestWithReceiptAndFiles, ResponsiveImageDataList } from '../config/DomainTypes';
 import { ObjectIdentifierList } from 'aws-sdk/clients/s3';
 import repository, { ImageMetadataList } from './repository';
@@ -59,7 +59,7 @@ const getById = async ({ params: { id } }: Request): Promise<ResponseData & { bo
   }
 };
 const flattenToArray = (imageKeys: ResponsiveImageDataList): string[] =>
-  imageKeys.flatMap(img => [img.orig.key, img.px320.key, img.px600.key, img.px900.key]);
+  pipe(flatten)(imageKeys.map(img => [img.orig.key, img.px320.key, img.px600.key, img.px900.key])) ;
 const dontExistIn = (imageKeysToSearch: ResponsiveImageDataList) => {
   const arrayToSearch = flattenToArray(imageKeysToSearch);
   return (imageKeys: string[]) => imageKeys.filter(imgKey => !arrayToSearch.includes(imgKey));
