@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { handler } from './config/handlerCreator';
+import { handler } from './config/utils';
 import receipt from './controllers/receipt';
 
 const { CLIENT_URL: ALLOWED_CORS_ORIGIN } = process.env;

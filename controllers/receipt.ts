@@ -1,36 +1,18 @@
 import { Request } from 'express';
-import { ResponseData } from '../config/handlerCreator';
-import {
-  getReceiptFromRequest,
-  Receipt,
-  ReceiptWithImages,
-  RequestWithReceiptAndFiles,
-  ResponsiveImageData,
-  ResponsiveImageDataList
-} from '../config/DomainTypes';
+import { pipe, ResponseData } from '../config/utils';
+import { getReceiptFromRequest, Receipt, ReceiptWithImages, RequestWithReceiptAndFiles, ResponsiveImageDataList } from '../config/DomainTypes';
 import { ObjectIdentifierList } from 'aws-sdk/clients/s3';
-import repository, { ImageKey, ImageMetadataList } from './repository';
+import repository, { ImageMetadataList } from './repository';
 
 const { db, storage } = repository;
 
-const toPartialImageDataList = (imageKeys: ImageKey[]) =>
-  imageKeys.map(
-    (i): ResponsiveImageData => ({
-      orig: { key: i.orig, url: null },
-      px320: { key: i.px320, url: null },
-      px600: { key: i.px600, url: null },
-      px900: { key: i.px900, url: null }
-    })
-  );
 type ReceiptWithImagesResponse = Promise<ResponseData & { body: ReceiptWithImages }>;
 const create = async (req: RequestWithReceiptAndFiles): ReceiptWithImagesResponse => {
   try {
     const receiptFromRequest = getReceiptFromRequest(req);
-    let imageKeys: ImageKey[] = [];
-    if (req.body.uploadedImages.length) {
-      imageKeys = await storage.resizeAndUploadImages(req.body.uploadedImages);
-    }
-    const responsiveImageData = await storage.getImagesUrls(toPartialImageDataList(imageKeys));
+    const responsiveImageData: ResponsiveImageDataList =
+      req.body.uploadedImages && req.body.uploadedImages.length ? await storage.resizeAndUploadImages(req.body.uploadedImages) : [];
+
     const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(responsiveImageData) };
     await db.createReceiptInDB(newReceipt);
     return { body: { receipt: newReceipt, images: responsiveImageData } };
@@ -76,24 +58,19 @@ const getById = async ({ params: { id } }: Request): Promise<ResponseData & { bo
     return { code: 400, body: { error: 'Error retrieving', message: e } } as any;
   }
 };
-export const pipe = (...fns) => x => fns.reduce((v, f) => f(v), x);
 const flattenToArray = (imageKeys: ResponsiveImageDataList): string[] =>
   imageKeys.flatMap(img => [img.orig.key, img.px320.key, img.px600.key, img.px900.key]);
 const dontExistIn = (imageKeysToSearch: ResponsiveImageDataList) => {
   const arrayToSearch = flattenToArray(imageKeysToSearch);
-  return (imageKeys: string[]) => {
-    imageKeys.filter(imgKey => !arrayToSearch.includes(imgKey));
-  };
+  return (imageKeys: string[]) => imageKeys.filter(imgKey => !arrayToSearch.includes(imgKey));
 };
-const toObjectIdentifiers = (imageKeys: string[]): ObjectIdentifierList => imageKeys.map(Key => ({ Key }));
+const toObjectIdentifiers = (imageKeys: string[]): ObjectIdentifierList => {
+  return imageKeys.map(Key => ({ Key }));
+};
 
 const edit = async (req: RequestWithReceiptAndFiles): ReceiptWithImagesResponse => {
   const receiptFromRequest = getReceiptFromRequest(req);
   try {
-    let uploadedImageKeys = [];
-    if (req.body.uploadedImages.length) {
-      uploadedImageKeys = await storage.resizeAndUploadImages(req.body.uploadedImages);
-    }
     const receiptFromDb = await db.getReceiptFromDB(receiptFromRequest.id);
     const imagesToRemove: ObjectIdentifierList = pipe(
       flattenToArray,
@@ -103,10 +80,13 @@ const edit = async (req: RequestWithReceiptAndFiles): ReceiptWithImagesResponse 
     if (imagesToRemove.length) {
       await storage.deleteImages(imagesToRemove);
     }
-    const responsiveImageData = await storage.getImagesUrls(toPartialImageDataList(uploadedImageKeys));
-    const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(responsiveImageData) };
+    const uploadedImages: ResponsiveImageDataList =
+      req.body.uploadedImages && req.body.uploadedImages.length ? await storage.resizeAndUploadImages(req.body.uploadedImages) : [];
+
+    const newReceipt: Receipt = { ...receiptFromRequest, images: receiptFromRequest.images.concat(uploadedImages) };
     await db.updateReceiptInDB(newReceipt);
-    return { body: { receipt: newReceipt, images: responsiveImageData } };
+    const newImages = await storage.getUrlsFromImageDataList(newReceipt.images);
+    return { body: { receipt: newReceipt, images: newImages } };
   } catch (e) {
     console.error(`Error updating, id: ${receiptFromRequest.id}: `, e);
     return { code: 400, body: { error: 'Could not update', message: e } } as any;
@@ -144,7 +124,7 @@ const getImagesByReceiptId = async ({ params: { id } }: Request): Promise<Respon
   try {
     const receipt: Receipt = await db.getReceiptFromDB(id);
     if (receipt) {
-      const responsiveImageData = await storage.getImagesUrls(receipt.images);
+      const responsiveImageData = await storage.getUrlsFromImageDataList(receipt.images);
       return { code: 200, body: responsiveImageData };
     } else {
       return { code: 404, body: { error: `Receipt by id:${id} not found` } } as any;

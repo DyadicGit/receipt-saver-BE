@@ -55,25 +55,6 @@ const deleteImages = async (keys: ObjectIdentifierList) => {
   return await s3.deleteObjects(s3Params).promise();
 };
 
-const signedUrlExpireSeconds = 1 * 60 * 60; // 1 hour
-const getImageUrl = async (data: ResponsiveImageData): Promise<ResponsiveImageData> => {
-  const accumulator = {};
-  if (!Object.getOwnPropertyNames(data).length) throw Error('imageKeys are empty');
-
-  for (const key in data) {
-    accumulator[key] = {
-      url: await s3.getSignedUrl('getObject', { Bucket, Key: data[key].key, Expires: signedUrlExpireSeconds }),
-      key: data[key].key
-    };
-  }
-  return accumulator as any;
-};
-
-const getImagesUrls = async (imageKeys: ResponsiveImageDataList): Promise<ResponsiveImageDataList> => {
-  const promisedImages = imageKeys && Array.isArray(imageKeys) ? imageKeys.map(getImageUrl) : [];
-  return await Promise.all(promisedImages);
-};
-
 export type ImageMetadataList = Array<{ Key: string; LastModified: string }>;
 const getAllImagesMetadata = async (): Promise<ImageMetadataList> => {
   const { Contents } = await s3.listObjects({ Bucket }).promise();
@@ -106,30 +87,50 @@ const getBufferImage = base64 => {
         .toBuffer()
   };
 };
-export type ImageKey = { orig: string; px320: string; px600: string; px900: string };
-const resizeAndUploadImages = async (uploadedImages: UploadedImages[]): Promise<ImageKey[]> => {
-  const res: ImageKey[] = [];
+type SimpleResponsiveImageData = { orig: string; px320: string; px600: string; px900: string };
+const resizeAndUploadImages = async (uploadedImages: UploadedImages[]): Promise<ResponsiveImageDataList> => {
+  const imageKeys: SimpleResponsiveImageData[] = [];
   for (const file of uploadedImages) {
     const { name } = generateFileName(file.contentType);
     const { orig: origBuffer, resized } = getBufferImage(file.base64);
     const px320Buffer = await resized(320);
     const px600Buffer = await resized(600);
     const px900Buffer = await resized(900);
-    await s3.upload(params(name('orig'), origBuffer, file.contentType)).promise();
-    await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
-    await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
-    await s3.upload(params(name('800px'), px900Buffer, file.contentType)).promise();
-    res.push({
-      orig: name('orig'),
-      px320: name('320px'),
-      px600: name('600px'),
-      px900: name('800px')
+    const { Key: origName } = await s3.upload(params(name('orig'), origBuffer, file.contentType)).promise();
+    const { Key: origPx320 } = await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
+    const { Key: origPx600 } = await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
+    const { Key: origPx900 } = await s3.upload(params(name('900px'), px900Buffer, file.contentType)).promise();
+    imageKeys.push({
+      orig: origName,
+      px320: origPx320,
+      px600: origPx600,
+      px900: origPx900
     });
   }
-  return res;
+  return await getUrlsFromSimpleImageDataList(imageKeys);
+};
+const getUrlsFromSimpleImageDataList = (dataList: SimpleResponsiveImageData[]): Promise<ResponsiveImageDataList> => {
+  return Promise.all(dataList.map(data => getUrl(property => data[property])));
+};
+const getUrlsFromImageDataList = (dataList: ResponsiveImageDataList): Promise<ResponsiveImageDataList> => {
+  return Promise.all(dataList.map(data => getUrl(property => data[property].key)));
+};
+
+const widthProperties: Array<keyof ResponsiveImageData> = ['orig', 'px320', 'px600', 'px900'];
+const signedUrlExpireSeconds = 1 * 60 * 60; // 1 hour
+type NameByWidthPropertyFn = (property: keyof ResponsiveImageData) => string;
+const getUrl = async (keyByPropertyFn: NameByWidthPropertyFn): Promise<ResponsiveImageData> => {
+  const accumulator = {};
+  for (const property of widthProperties) {
+    accumulator[property] = {
+      url: await s3.getSignedUrl('getObject', { Bucket, Key: keyByPropertyFn(property), Expires: signedUrlExpireSeconds }),
+      key: keyByPropertyFn(property)
+    };
+  }
+  return accumulator as ResponsiveImageData;
 };
 
 export default {
-  storage: { deleteImages, getImageUrl, getImagesUrls, getAllImagesMetadata, resizeAndUploadImages },
+  storage: { deleteImages, getUrlsFromImageDataList, getAllImagesMetadata, resizeAndUploadImages },
   db: { getAllReceiptsFromDB, getReceiptFromDB, createReceiptInDB, updateReceiptInDB, deleteReceiptFromDB }
 };

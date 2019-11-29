@@ -6,19 +6,18 @@
   "scripts": {
     "local:start": "tsc && node ./build/app.local.js ",
     "local:debug": "tsc && node --inspect ./build/app.local.js",
-    "sls:start": "tsc && serverless offline start --env development",
-    "sls:debug": "tsc && node --inspect %slsloc% offline start --env development",
+    "sls:start": "prelocal.bat && tsc && serverless offline start --env development",
+    "sls:debug": "prelocal.bat && tsc && node --inspect %slsloc% offline start --env development",
     "db:migrate": "serverless dynamodb --migrate",
     "build": "tsc",
     "tsc:watch": "tsc -w",
-    "deploy": "tsc && serverless deploy --env production"
+    "deploy": "predeploy.bat && tsc && serverless deploy --env production"
   },
   "author": "Olgerd Seviakov",
   "dependencies": {
     "aws-sdk": "^2.553.0",
     "express": "^4.17.1",
     "mime": "^2.4.4",
-    "serverless": "^1.58.0",
     "serverless-http": "^2.3.0",
     "sharp": "^0.23.3",
     "uuid": "^3.3.3"
