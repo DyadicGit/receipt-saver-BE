@@ -97,14 +97,14 @@ const resizeAndUploadImages = async (uploadedImages: UploadedImages[]): Promise<
     const px600Buffer = await resized(600);
     const px900Buffer = await resized(900);
     const { Key: origName } = await s3.upload(params(name('orig'), origBuffer, file.contentType)).promise();
-    const { Key: origPx320 } = await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
-    const { Key: origPx600 } = await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
-    const { Key: origPx900 } = await s3.upload(params(name('900px'), px900Buffer, file.contentType)).promise();
+    const { Key: px320Name } = await s3.upload(params(name('320px'), px320Buffer, file.contentType)).promise();
+    const { Key: px600Name } = await s3.upload(params(name('600px'), px600Buffer, file.contentType)).promise();
+    const { Key: px900Name } = await s3.upload(params(name('900px'), px900Buffer, file.contentType)).promise();
     imageKeys.push({
       orig: origName,
-      px320: origPx320,
-      px600: origPx600,
-      px900: origPx900
+      px320: px320Name,
+      px600: px600Name,
+      px900: px900Name
     });
   }
   return await getUrlsFromSimpleImageDataList(imageKeys);
