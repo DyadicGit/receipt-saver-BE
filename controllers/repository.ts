@@ -1,15 +1,22 @@
-import { AttachmentFieldName, Receipt, ResponsiveImageData, ResponsiveImageDataList, UploadedImages } from '../config/DomainTypes';
+import {
+  AttachmentFieldName,
+  Receipt,
+  ResponsiveImageData,
+  ResponsiveImageDataList,
+  UploadedImages
+} from '../config/DomainTypes';
 import { DeleteObjectsRequest, ObjectIdentifierList, PutObjectRequest } from 'aws-sdk/clients/s3';
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
 import awsInstances from './AwsInstances';
 import sharp from 'sharp';
 import mime from 'mime';
+import { DetectTextRequest } from 'aws-sdk/clients/rekognition';
 import GetItemOutput = DocumentClient.GetItemOutput;
 import GetItemInput = DocumentClient.GetItemInput;
 import UpdateItemInput = DocumentClient.UpdateItemInput;
 import PutItemInput = DocumentClient.PutItemInput;
 
-const { s3, dynamoDb } = awsInstances;
+const { s3, dynamoDb, rek } = awsInstances;
 
 const { TABLE_RECEIPT: TableName, BUCKET_RECEIPTS: Bucket } = process.env;
 
@@ -87,6 +94,17 @@ const getBufferImage = base64 => {
         .toBuffer()
   };
 };
+const getRecognitionData = async (uploadedImage: UploadedImages) => {
+  const { orig: origBuffer } = getBufferImage(uploadedImage.base64);
+  const params: DetectTextRequest = { Image: { Bytes: origBuffer } };
+  const text = await rek.detectText(params).promise();
+  const labels = await rek.detectLabels(params).promise();
+  return {
+    text: text.TextDetections.map(s => ({ Id: s.Id, ParentId: s.ParentId, DetectedText: s.DetectedText, Type: s.Type })),
+    labels: labels.Labels.map(s => ({ Name: s.Name, Parents: s.Parents }))
+  };
+};
+
 type SimpleResponsiveImageData = { orig: string; px320: string; px600: string; px900: string };
 const resizeAndUploadImages = async (uploadedImages: UploadedImages[]): Promise<ResponsiveImageDataList> => {
   const imageKeys: SimpleResponsiveImageData[] = [];
@@ -132,5 +150,6 @@ const getUrl = async (keyByPropertyFn: NameByWidthPropertyFn): Promise<Responsiv
 
 export default {
   storage: { deleteImages, getUrlsFromImageDataList, getAllImagesMetadata, resizeAndUploadImages },
-  db: { getAllReceiptsFromDB, getReceiptFromDB, createReceiptInDB, updateReceiptInDB, deleteReceiptFromDB }
+  db: { getAllReceiptsFromDB, getReceiptFromDB, createReceiptInDB, updateReceiptInDB, deleteReceiptFromDB },
+  ocr: { getRecognitionData }
 };

@@ -40,5 +40,7 @@ app.post('/receipt', handler(receipt.create));
 app.delete('/receipt/:id', handler(receipt.deleteById));
 app.get('/image/all', handler(receipt.getAllImages));
 app.get('/image/byReceiptId/:id', handler(receipt.getImagesByReceiptId));
+app.post('/image/detectUploaded', handler(receipt.detectUploaded));
+app.post('/image/detectExisting', handler(receipt.detectExisting));
 
 module.exports = app;

@@ -8,6 +8,7 @@
     "local:debug": "tsc && node --inspect ./build/app.local.js",
     "sls:start": "prelocal.bat && tsc && serverless offline start --env development",
     "sls:debug": "prelocal.bat && tsc && node --inspect %slsloc% offline start --env development",
+    "sls:debugNoScript": "tsc && node --inspect %slsloc% offline start --env development",
     "db:migrate": "serverless dynamodb --migrate",
     "build": "tsc",
     "tsc:watch": "tsc -w",

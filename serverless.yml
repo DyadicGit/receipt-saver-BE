@@ -43,6 +43,7 @@ provider:
           - dynamodb:DeleteItem
         Resource:
           - { "Fn::GetAtt": ["ReceiptDynamoDBTable", "Arn" ] }
+
       - Effect: Allow
         Action:
           - s3:PutObject
@@ -53,6 +54,11 @@ provider:
           - s3:DeleteObjectAcl
         Resource:
           - { "Fn::GetAtt": ["ReceiptBucket", "Arn" ] }
+
+      - Effect: Allow
+        Action:
+         - "rekognition:*"
+        Resource: "*"
   apiGateway:
     binaryMediaTypes:
       - 'image/*'

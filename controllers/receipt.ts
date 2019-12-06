@@ -4,7 +4,7 @@ import { getReceiptFromRequest, Receipt, ReceiptWithImages, RequestWithReceiptAn
 import { ObjectIdentifierList } from 'aws-sdk/clients/s3';
 import repository, { ImageMetadataList } from './repository';
 
-const { db, storage } = repository;
+const { db, storage, ocr } = repository;
 
 type ReceiptWithImagesResponse = Promise<ResponseData & { body: ReceiptWithImages }>;
 const create = async (req: RequestWithReceiptAndFiles): ReceiptWithImagesResponse => {
@@ -134,4 +134,25 @@ const getImagesByReceiptId = async ({ params: { id } }: Request): Promise<Respon
     return { code: 400, body: e };
   }
 };
-export default { create, getAll, getById, edit, deleteById, getAllImages, getImagesByReceiptId };
+
+const detectUploaded = async (req) => {
+  try {
+    const res = await ocr.getRecognitionData(req.body);
+    return  { code: 200, body: res}
+  } catch (e) {
+    console.log('Error', e);
+    return { code: 400, body: e };
+  }
+};
+
+const detectExisting = async (req) => {
+  try {
+    const res = await ocr.getRecognitionData(req.body);
+    return  { code: 200, body: res}
+  } catch (e) {
+    console.log('Error', e);
+    return { code: 400, body: e };
+  }
+};
+
+export default { create, getAll, getById, edit, deleteById, getAllImages, getImagesByReceiptId, detectUploaded, detectExisting };

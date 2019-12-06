@@ -1,7 +1,9 @@
-const AWS = require('aws-sdk');
+import Rekognition from "aws-sdk/clients/rekognition";
 import { DocumentClient } from 'aws-sdk/lib/dynamodb/document_client';
-const { ACCESS_KEY_ID, SECRET_ACCESS_KEY, NODE_ENV } = process.env;
 import defaultEnv from '../default_env.json';
+
+const AWS = require('aws-sdk');
+const { ACCESS_KEY_ID, SECRET_ACCESS_KEY, NODE_ENV } = process.env;
 
 const dynamoDb: DocumentClient =
   NODE_ENV === 'development'
@@ -23,4 +25,6 @@ const s3 =
       })
     : new AWS.S3({ accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY });
 
-export default { dynamoDb, s3 };
+const rek = new AWS.Rekognition({accessKeyId: ACCESS_KEY_ID, secretAccessKey: SECRET_ACCESS_KEY});
+
+export default { dynamoDb, s3, rek };
