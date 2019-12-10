@@ -135,7 +135,7 @@ const getUrlsFromImageDataList = (dataList: ResponsiveImageDataList): Promise<Re
 };
 
 const widthProperties: Array<keyof ResponsiveImageData> = ['orig', 'px320', 'px600', 'px900'];
-const signedUrlExpireSeconds = 1 * 60 * 60; // 1 hour
+const signedUrlExpireSeconds = 2 * 60 * 60; // 1 hour
 type NameByWidthPropertyFn = (property: keyof ResponsiveImageData) => string;
 const getUrl = async (keyByPropertyFn: NameByWidthPropertyFn): Promise<ResponsiveImageData> => {
   const accumulator = {};

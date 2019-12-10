@@ -21,6 +21,8 @@ custom:
   s3:
     port: ${self:custom.defaultEnv.S3_PORT}
     directory: offline
+    cors: ./resources/s3offline_cors_policy.xml
+
 
 provider:
   name: aws
