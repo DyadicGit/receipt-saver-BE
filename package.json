@@ -15,7 +15,7 @@
   },
   "author": "Olgerd Seviakov",
   "dependencies": {
-    "aws-sdk": "^2.553.0",
+    "aws-sdk": "^2.814.0",
     "express": "^4.17.1",
     "mime": "^2.4.4",
     "node.extend": "^2.0.2",
